@@ -19,10 +19,6 @@ public unsafe partial class VkContext : IDisposable
     private readonly uint _mainQueueIndex;
     
     private readonly ExtDebugUtils _extDebugUtils;
-
-    public Vk Vk => _vk;
-    public Device Device => _device;
-    public PhysicalDevice PhysicalDevice => _physicalDevice;
     
     public VkContext()
     {

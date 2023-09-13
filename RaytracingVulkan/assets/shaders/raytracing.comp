@@ -1,0 +1,60 @@
+#version 450
+
+layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+layout(binding = 0, rgba8) uniform writeonly image2D resultImage;
+
+struct ray {
+    vec3 origin;
+    vec3 direction;
+};
+
+struct sphere {
+    vec3 center;
+    float radius;
+};
+
+bool hitSphere(sphere sphere, ray ray, inout vec3 normal){
+    //solve sphere equation
+    vec3 origin = ray.origin - sphere.center;
+    
+    float a = dot(ray.direction, ray.direction);
+    float b = 2 * dot(origin, ray.direction);
+    float c = dot(origin, origin) - sphere.radius * sphere.radius;
+
+    float discriminant = b * b - 4 * a * c;
+    if(discriminant < 0) return false;
+    
+    //calculate hitpoint and normal
+    float t = (-b - sqrt(discriminant) / (2 * a));
+    vec3 hitPoint = ray.origin + t * ray.direction;
+    normal = normalize(-hitPoint - sphere.center);
+    return true;
+}
+
+vec3 PerPixel(vec2 coord) {
+    ray ray = ray(vec3(0,0,1), vec3(coord, -1));
+    sphere sphere = sphere(vec3(0,0,0), 0.5);
+
+    //if sphere is hit return its normal
+    vec3 normal;    
+    if (hitSphere(sphere, ray, normal)) {
+        return normal;
+    }
+    
+    //return black
+    return vec3(0);
+}
+
+void main() {
+    vec2 imageSize = vec2(imageSize(resultImage));
+    
+    //calculate uv coords
+    vec2 uv = (gl_GlobalInvocationID.xy) / imageSize.xy;
+    uv = uv * 2 - 1; //map -1 -> 1
+    uv = vec2(uv.x, uv.y);
+    
+    vec3 color = PerPixel(uv);    
+    color = clamp(color, 0, 1);
+    
+    imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));
+}

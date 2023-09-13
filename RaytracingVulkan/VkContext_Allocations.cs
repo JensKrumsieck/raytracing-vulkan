@@ -26,12 +26,33 @@ public unsafe partial class VkContext
         _vk.BindImageMemory(_device, image, deviceMemory, 0);
         return new AllocatedImage {Image = image, Memory = deviceMemory};
     }
-
     public void DestroyImage(AllocatedImage allocatedImage)
     {
         _vk.FreeMemory(_device, allocatedImage.Memory, null);
         _vk.DestroyImage(_device, allocatedImage.Image, null);
     }
+
+    public ImageView CreateImageView(Image image, Format imageFormat)
+    {
+        var createInfo = new ImageViewCreateInfo
+        {
+            SType = StructureType.ImageViewCreateInfo,
+            Image = image,
+            ViewType = ImageViewType.Type2D,
+            Format = imageFormat,
+            SubresourceRange =
+            {
+                AspectMask = ImageAspectFlags.ColorBit,
+                BaseMipLevel = 0,
+                BaseArrayLayer = 0,
+                LevelCount = 1,
+                LayerCount = 1
+            }
+        };
+        _vk.CreateImageView(_device, createInfo, null, out var imageView);
+        return imageView;
+    }
+    public void DestroyImageView(ImageView imageView) => _vk.DestroyImageView(_device, imageView, null);
 
     public AllocatedBuffer CreateBuffer(uint size, BufferUsageFlags usageFlags, MemoryPropertyFlags memoryFlags)
     {
@@ -79,6 +100,13 @@ public unsafe partial class VkContext
             barrierInfo.DstAccessMask = AccessFlags.TransferWriteBit;
             srcStage = PipelineStageFlags.TopOfPipeBit;
             dstStage = PipelineStageFlags.TransferBit;
+        }
+        else  if (oldLayout == ImageLayout.Undefined && newLayout is ImageLayout.General)
+        {
+            barrierInfo.SrcAccessMask = 0;
+            barrierInfo.DstAccessMask = AccessFlags.ShaderReadBit;
+            srcStage = PipelineStageFlags.TopOfPipeBit;
+            dstStage = PipelineStageFlags.ComputeShaderBit;
         }
         else if (oldLayout == ImageLayout.TransferDstOptimal && newLayout == ImageLayout.ShaderReadOnlyOptimal)
         {

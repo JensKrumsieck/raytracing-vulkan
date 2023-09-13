@@ -17,4 +17,31 @@
       <PackageReference Include="SkiaSharp" Version="2.88.5" />
     </ItemGroup>
 
+    <!--Shader compilation-->
+    <ItemGroup>
+        <None Update="$(ProjectDir)\assets\**\*">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <ShaderDir Include="$(ProjectDir)\assets\shaders\**\*" />
+        <CompiledShaders Include="$(ProjectDir)\assets\shaders\**\*.spv" />
+    </ItemGroup>
+    
+    <Target Name="CleanCompiledShaders" AfterTargets="Clean">
+        <Message Text="Clean compiled shaders \n@(CompiledShaders)" />
+        <Delete Files="@(CompiledShaders)" />
+    </Target>
+    
+    <Target Name="CompileShaders" BeforeTargets="ResolveReferences">
+        <Message Text="Compile Shaders \n@(ShaderDir)" />
+        <Exec Command="glslc &quot;%(ShaderDir.FullPath)&quot; -o &quot;%(ShaderDir.FullPath).spv&quot;" Condition="'%(ShaderDir.Extension)' != '.spv'" />
+        <Message Text="Copy Shaders \n@(CompiledShaders)" />
+        <ItemGroup>
+            <None Include="@(CompiledShaders)">
+                <Link>%(Filename)%(Extension)</Link>
+                <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            </None>
+        </ItemGroup>
+    </Target>
+    <!--/Shader compilation-->
+
 </Project>
