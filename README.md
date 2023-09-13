@@ -5,7 +5,7 @@ We will build a small raytracer, similar to the one from the famous ["Ray Tracin
 
 I choose to use the [Silk.NET Vulkan bindings](https://github.com/dotnet/Silk.NET) for this project.
 
-## [Tutorial Part 1]()
+## [Tutorial Part 1](https://jenskrumsieck.medium.com/raytracing-in-vulkan-using-c-part-1-997cb284f7e8)
 
 Feel free to contribute or leave suggestions.
 
