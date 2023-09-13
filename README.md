@@ -8,3 +8,8 @@ I choose to use the [Silk.NET Vulkan bindings](https://github.com/dotnet/Silk.NE
 ## [Tutorial Part 1]()
 
 Feel free to contribute or leave suggestions.
+
+## Resources:
+* ["Ray Tracing in One Weekend" series](https://raytracing.github.io/)
+* [The Cherno: Ray Tracing Series on YouTube](https://www.youtube.com/watch?v=gfW1Fhd9u9Q&list=PLlrATfBNZ98edc5GshdBtREv5asFW3yXl)
+* [Silk.NET](https://github.com/dotnet/Silk.NET)
