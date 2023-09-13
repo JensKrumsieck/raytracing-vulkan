@@ -5,7 +5,7 @@ using Silk.NET.Vulkan.Extensions.EXT;
 
 namespace RaytracingVulkan;
 
-public unsafe class VkContext : IDisposable
+public unsafe partial class VkContext : IDisposable
 {
     private readonly Vk _vk = Vk.GetApi();
     
@@ -14,13 +14,15 @@ public unsafe class VkContext : IDisposable
     private readonly PhysicalDevice _physicalDevice;
     private readonly Device _device;
     private readonly CommandPool _commandPool;
-
+    private readonly Queue _mainQueue;
+    
     private readonly uint _mainQueueIndex;
     
     private readonly ExtDebugUtils _extDebugUtils;
 
     public Vk Vk => _vk;
     public Device Device => _device;
+    public PhysicalDevice PhysicalDevice => _physicalDevice;
     
     public VkContext()
     {
@@ -123,6 +125,8 @@ public unsafe class VkContext : IDisposable
         };
         if (_vk.CreateDevice(_physicalDevice, deviceCreateInfo, null, out _device) != Result.Success)
             throw new Exception("Could not create device");
+
+        _vk.GetDeviceQueue(_device, _mainQueueIndex, 0, out _mainQueue);
         
         SilkMarshal.Free((nint) pPEnabledLayers);
         SilkMarshal.Free((nint) pPEnabledInstanceExtensions);
@@ -148,6 +152,9 @@ public unsafe class VkContext : IDisposable
         return Vk.False;
     }
 
+    public Result SubmitMainQueue(SubmitInfo submitInfo, Fence fence) => _vk.QueueSubmit(_mainQueue, 1, submitInfo, fence);
+    private Result WaitForQueue() => _vk.QueueWaitIdle(_mainQueue);
+    
     public void Dispose()
     {
         _vk.DestroyCommandPool(_device, _commandPool, null);
