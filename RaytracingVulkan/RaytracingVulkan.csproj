@@ -37,7 +37,7 @@
         <Message Text="Copy Shaders \n@(CompiledShaders)" />
         <ItemGroup>
             <None Include="@(CompiledShaders)">
-                <Link>%(Filename)%(Extension)</Link>
+                <Link>assets/shaders/%(Filename)%(Extension)</Link>
                 <CopyToOutputDirectory>Always</CopyToOutputDirectory>
             </None>
         </ItemGroup>
