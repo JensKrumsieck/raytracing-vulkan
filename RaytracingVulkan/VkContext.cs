@@ -5,8 +5,11 @@ using Silk.NET.Vulkan.Extensions.EXT;
 
 namespace RaytracingVulkan;
 
-public unsafe partial class VkContext : IDisposable
+public sealed unsafe partial class VkContext : IDisposable
 {
+    public Vk Vk => _vk;
+    public Device Device => _device;
+    
     private readonly Vk _vk = Vk.GetApi();
     
     private readonly Instance _instance;
@@ -150,6 +153,63 @@ public unsafe partial class VkContext : IDisposable
 
     public Result SubmitMainQueue(SubmitInfo submitInfo, Fence fence) => _vk.QueueSubmit(_mainQueue, 1, submitInfo, fence);
     private Result WaitForQueue() => _vk.QueueWaitIdle(_mainQueue);
+    
+    public CommandBuffer BeginSingleTimeCommands()
+    {
+        var allocInfo = new CommandBufferAllocateInfo
+        {
+            SType = StructureType.CommandBufferAllocateInfo,
+            CommandPool = _commandPool,
+            CommandBufferCount = 1,
+            Level = CommandBufferLevel.Primary
+        };
+        _vk.AllocateCommandBuffers(_device, allocInfo, out var commandBuffer);
+        var beginInfo = new CommandBufferBeginInfo
+        {
+            SType = StructureType.CommandBufferBeginInfo,
+            Flags = CommandBufferUsageFlags.None
+        };
+        _vk.BeginCommandBuffer(commandBuffer, beginInfo);
+        return commandBuffer; }
+
+    public void EndSingleTimeCommands(CommandBuffer cmd)
+    {
+        _vk.EndCommandBuffer(cmd);
+        var submitInfo = new SubmitInfo
+        {
+            SType = StructureType.SubmitInfo,
+            CommandBufferCount = 1,
+            PCommandBuffers = &cmd
+        };
+        SubmitMainQueue(submitInfo, default);
+        WaitForQueue();
+        _vk.FreeCommandBuffers(_device, _commandPool, 1, cmd);
+    }
+
+    private uint FindMemoryTypeIndex(uint filter, MemoryPropertyFlags flags)
+    {
+        _vk.GetPhysicalDeviceMemoryProperties(_physicalDevice, out var props);
+        for (var i = 0; i < props.MemoryTypeCount; i++)
+        {
+            if ((filter & (uint)(1 << i)) != 0u && (props.MemoryTypes[i].PropertyFlags & flags) == flags)
+                return (uint)i;
+        }
+        throw new Exception("Unable to find suitable memory type");
+    }
+
+    public DeviceMemory AllocateMemory(MemoryRequirements memoryRequirements, MemoryPropertyFlags propertyFlags)
+    {
+        var size = memoryRequirements.Size;
+        var typeIndex = FindMemoryTypeIndex(memoryRequirements.MemoryTypeBits, propertyFlags);
+        var allocInfo = new MemoryAllocateInfo
+        {
+            SType = StructureType.MemoryAllocateInfo,
+            AllocationSize = size,
+            MemoryTypeIndex = typeIndex
+        };
+        _vk.AllocateMemory(_device, allocInfo, null, out var deviceMemory);
+        return deviceMemory;
+    }
     
     public void Dispose()
     {
