@@ -182,9 +182,9 @@ public sealed unsafe class VkImage : Allocation
     public void CopyTo(void* destination)
     {
         //this is valid for R8G8B8A8 formats and permutations only
-        var size = Width * Height * 4; 
+        var size = Width * Height * 4;
         using var buffer = new VkBuffer(VkContext, size, BufferUsageFlags.TransferDstBit,
-                                        MemoryPropertyFlags.HostVisibleBit);
+            MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit | MemoryPropertyFlags.HostCachedBit);
         CopyToBuffer(buffer.Buffer);
 
         //copy data using a staging buffer
