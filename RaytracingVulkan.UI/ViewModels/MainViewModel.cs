@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -14,7 +13,6 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
 
     private readonly VkContext _context = (Application.Current as App)!.VkContext;
 
-    private Stopwatch VulkanStopWatch = new();
     private readonly DescriptorPool _descriptorPool;
     private readonly DescriptorSet _descriptorSet;
     private readonly DescriptorSetLayout _setLayout;
@@ -65,11 +63,14 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _vkBuffer.UnmapMemory();
+        _image.Dispose();
+        _vkBuffer.Dispose();
+        _vkImage.Dispose();
+        
         _context.DestroyDescriptorPool(_descriptorPool);
         _context.DestroyDescriptorSetLayout(_setLayout);
         _context.DestroyPipelineLayout(_pipelineLayout);
         _context.DestroyPipeline(_pipeline);
-        _image.Dispose();
         GC.SuppressFinalize(this);
     }
     

@@ -193,7 +193,8 @@ public sealed unsafe partial class VkContext : IDisposable
     {
         var commandBuffer = AllocateCommandBuffer();
         BeginCommandBuffer(commandBuffer);
-        return commandBuffer; }
+        return commandBuffer; 
+    }
 
     public void EndSingleTimeCommands(CommandBuffer cmd)
     {

@@ -21,4 +21,10 @@ public partial class MainWindow : Window
         _viewModel.Render();
         Dispatcher.UIThread.Post(InvalidateVisual, DispatcherPriority.Render);
     }
+
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        base.OnClosing(e);
+        _viewModel.Dispose();
+    }
 }

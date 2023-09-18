@@ -31,7 +31,7 @@ public sealed unsafe class VkImage : Allocation
             Samples = SampleCountFlags.Count1Bit,
             SharingMode = SharingMode.Exclusive,
             InitialLayout = ImageLayout.Undefined,
-            Tiling = ImageTiling.Linear,
+            Tiling = ImageTiling.Optimal,
             Usage = imageUsageFlags,
             MipLevels = 1,
             ArrayLayers = 1
