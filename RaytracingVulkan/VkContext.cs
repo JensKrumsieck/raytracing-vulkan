@@ -152,9 +152,9 @@ public sealed unsafe partial class VkContext : IDisposable
     }
 
     public Result SubmitMainQueue(SubmitInfo submitInfo, Fence fence) => _vk.QueueSubmit(_mainQueue, 1, submitInfo, fence);
-    private Result WaitForQueue() => _vk.QueueWaitIdle(_mainQueue);
-    
-    public CommandBuffer BeginSingleTimeCommands()
+    public Result WaitForQueue() => _vk.QueueWaitIdle(_mainQueue);
+
+    public CommandBuffer AllocateCommandBuffer()
     {
         var allocInfo = new CommandBufferAllocateInfo
         {
@@ -164,15 +164,20 @@ public sealed unsafe partial class VkContext : IDisposable
             Level = CommandBufferLevel.Primary
         };
         _vk.AllocateCommandBuffers(_device, allocInfo, out var commandBuffer);
+        return commandBuffer;
+    }
+
+    public void BeginCommandBuffer(CommandBuffer commandBuffer)
+    {
         var beginInfo = new CommandBufferBeginInfo
         {
             SType = StructureType.CommandBufferBeginInfo,
             Flags = CommandBufferUsageFlags.None
         };
         _vk.BeginCommandBuffer(commandBuffer, beginInfo);
-        return commandBuffer; }
+    }
 
-    public void EndSingleTimeCommands(CommandBuffer cmd)
+    public void EndCommandBuffer(CommandBuffer cmd)
     {
         _vk.EndCommandBuffer(cmd);
         var submitInfo = new SubmitInfo
@@ -182,6 +187,17 @@ public sealed unsafe partial class VkContext : IDisposable
             PCommandBuffers = &cmd
         };
         SubmitMainQueue(submitInfo, default);
+    }
+    
+    public CommandBuffer BeginSingleTimeCommands()
+    {
+        var commandBuffer = AllocateCommandBuffer();
+        BeginCommandBuffer(commandBuffer);
+        return commandBuffer; }
+
+    public void EndSingleTimeCommands(CommandBuffer cmd)
+    {
+        EndCommandBuffer(cmd);
         WaitForQueue();
         _vk.FreeCommandBuffers(_device, _commandPool, 1, cmd);
     }

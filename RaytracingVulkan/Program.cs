@@ -20,7 +20,7 @@ var pipeline = ctx.CreateComputePipeline(pipelineLayout, shaderModule);
 
 //image creation
 var image = new VkImage(ctx, 500, 500, Format.R8G8B8A8Unorm,ImageUsageFlags.StorageBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.TransferSrcBit);
-image.TransitionLayout(ImageLayout.General);
+image.TransitionLayoutImmediate(ImageLayout.General);
 var imageInfo = image.GetImageInfo();
 ctx.UpdateDescriptorSetImage(ref descriptorSet, imageInfo, DescriptorType.StorageImage, 0);
 

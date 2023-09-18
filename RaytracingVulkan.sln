@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RaytracingVulkan", "RaytracingVulkan\RaytracingVulkan.csproj", "{483FEA20-C27C-4569-8113-48B1FFA917D9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RaytracingVulkan.UI", "RaytracingVulkan.UI\RaytracingVulkan.UI.csproj", "{719D6130-96F8-4C1D-9003-EADE59A1EB29}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{483FEA20-C27C-4569-8113-48B1FFA917D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{483FEA20-C27C-4569-8113-48B1FFA917D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{483FEA20-C27C-4569-8113-48B1FFA917D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{719D6130-96F8-4C1D-9003-EADE59A1EB29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{719D6130-96F8-4C1D-9003-EADE59A1EB29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{719D6130-96F8-4C1D-9003-EADE59A1EB29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{719D6130-96F8-4C1D-9003-EADE59A1EB29}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -31,7 +31,7 @@ public sealed unsafe class VkImage : Allocation
             Samples = SampleCountFlags.Count1Bit,
             SharingMode = SharingMode.Exclusive,
             InitialLayout = ImageLayout.Undefined,
-            Tiling = ImageTiling.Optimal,
+            Tiling = ImageTiling.Linear,
             Usage = imageUsageFlags,
             MipLevels = 1,
             ArrayLayers = 1
@@ -69,9 +69,15 @@ public sealed unsafe class VkImage : Allocation
         ImageView = _imageView
     };
 
-    public void TransitionLayout(ImageLayout newLayout)
+    public void TransitionLayoutImmediate(ImageLayout newLayout)
     {
         var cmd = VkContext.BeginSingleTimeCommands();
+        TransitionLayout(cmd, newLayout);
+        VkContext.EndSingleTimeCommands(cmd);
+    }
+
+    public void TransitionLayout(CommandBuffer cmd, ImageLayout newLayout)
+    {
         var range = new ImageSubresourceRange(ImageAspectFlags.ColorBit, 0, 1, 0, 1);
         var barrierInfo = new ImageMemoryBarrier
         {
@@ -137,16 +143,15 @@ public sealed unsafe class VkImage : Allocation
             throw new Exception($"Currently unsupported Layout Transition from {_currentLayout} to {newLayout}");
 
         Vk.CmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, null, 0, null, 1, barrierInfo);
-        VkContext.EndSingleTimeCommands(cmd);
         _currentLayout = newLayout;
     }
 
-    private void CopyToBuffer(Buffer buffer)
+    public void CopyToBufferImmediate(Buffer buffer)
     { 
         //check if usable as transfer source -> transition if not
         var tmpLayout = _currentLayout;
         if(_currentLayout != ImageLayout.TransferSrcOptimal)
-            TransitionLayout(ImageLayout.TransferSrcOptimal);
+            TransitionLayoutImmediate(ImageLayout.TransferSrcOptimal);
 
         var cmd = VkContext.BeginSingleTimeCommands();
         var layers = new ImageSubresourceLayers(ImageAspectFlags.ColorBit, 0, 0, 1);
@@ -156,7 +161,25 @@ public sealed unsafe class VkImage : Allocation
 
         //transfer back to original layout if changed
         if(_currentLayout != tmpLayout)
-            TransitionLayout(ImageLayout.General);
+            TransitionLayoutImmediate(ImageLayout.General);
+    }
+    public void TransitionAndCopyToBuffer(CommandBuffer cmd, Buffer buffer)
+    { 
+        //check if usable as transfer source -> transition if not
+        var tmpLayout = _currentLayout;
+        if(_currentLayout != ImageLayout.TransferSrcOptimal)
+            TransitionLayout(cmd, ImageLayout.TransferSrcOptimal);
+        CopyToBuffer(cmd, buffer);
+        //transfer back to original layout if changed
+        if(_currentLayout != tmpLayout)
+            TransitionLayout(cmd, ImageLayout.General);
+    }
+
+    public void CopyToBuffer(CommandBuffer cmd, Buffer buffer)
+    {
+        var layers = new ImageSubresourceLayers(ImageAspectFlags.ColorBit, 0, 0, 1);
+        var copyRegion = new BufferImageCopy(0, 0, 0, layers, default, ImageExtent);
+        Vk.CmdCopyImageToBuffer(cmd, Image, _currentLayout, buffer, 1, copyRegion);
     }
 
     public void SetData(void* source)
@@ -172,20 +195,20 @@ public sealed unsafe class VkImage : Allocation
         buffer.UnmapMemory();
         var tmpLayout = _currentLayout;
         if(_currentLayout != ImageLayout.TransferDstOptimal)
-            TransitionLayout(ImageLayout.TransferDstOptimal);
+            TransitionLayoutImmediate(ImageLayout.TransferDstOptimal);
         buffer.CopyToImage(this);
 
         if(_currentLayout != tmpLayout)
-            TransitionLayout(tmpLayout);
+            TransitionLayoutImmediate(tmpLayout);
     }
 
     public void CopyTo(void* destination)
     {
         //this is valid for R8G8B8A8 formats and permutations only
-        var size = Width * Height * 4; 
+        var size = Width * Height * 4;
         using var buffer = new VkBuffer(VkContext, size, BufferUsageFlags.TransferDstBit,
-                                        MemoryPropertyFlags.HostVisibleBit);
-        CopyToBuffer(buffer.Buffer);
+            MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit | MemoryPropertyFlags.HostCachedBit);
+        CopyToBufferImmediate(buffer.Buffer);
 
         //copy data using a staging buffer
         void* mappedData = default;
