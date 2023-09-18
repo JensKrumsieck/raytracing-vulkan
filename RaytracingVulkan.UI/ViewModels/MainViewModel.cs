@@ -25,9 +25,13 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
     private readonly VkBuffer _vkBuffer;
 
     private readonly void* _mappedData;
+
+    private InputHandler _input;
     
-    public MainViewModel()
+    public MainViewModel(InputHandler input)
     {
+        _input = input;
+        
         //pipeline creation
         var poolSizes = new DescriptorPoolSize[] {new() {Type = DescriptorType.StorageImage, DescriptorCount = 1000}};
         _descriptorPool = _context.CreateDescriptorPool(poolSizes);
@@ -60,6 +64,7 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
             MemoryPropertyFlags.HostVisibleBit);
         _vkBuffer.MapMemory(ref _mappedData);
     }
+    
     public void Dispose()
     {
         _vkBuffer.UnmapMemory();
@@ -76,6 +81,12 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
     
     public void Render()
     {
+        HandleInput();
+        RenderImage();
+        CopyImageToHost();
+    }
+    private void RenderImage()
+    {
         //execute compute shader
         _context.BeginCommandBuffer(_cmd);
         _vkImage.TransitionLayout(_cmd, ImageLayout.General);
@@ -86,9 +97,17 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
         _vkImage.CopyToBuffer(_cmd, _vkBuffer.Buffer);
         _context.EndCommandBuffer(_cmd);
         _context.WaitForQueue();
-        
+    }
+
+    private void CopyImageToHost()
+    {
         using var buffer = _image.Lock();
         var size = _vkImage.Width * _vkImage.Height * 4;
         System.Buffer.MemoryCopy(_mappedData, (void*) buffer.Address, size, size);
+    }
+    
+    private void HandleInput()
+    {
+        //camera move
     }
 }
