@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Threading.Tasks;
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -8,14 +8,13 @@ using Silk.NET.Vulkan;
 
 namespace RaytracingVulkan.UI.ViewModels;
 
-public partial class MainViewModel : ObservableObject, IDisposable
+public unsafe partial class MainViewModel : ObservableObject, IDisposable
 {
-    [ObservableProperty] private WriteableBitmap _image = null!;
+    [ObservableProperty] private WriteableBitmap _image;
 
     private readonly VkContext _context = (Application.Current as App)!.VkContext;
-    private Vk Vk => _context.Vk;
-    private Device Device => _context.Device;
 
+    private Stopwatch VulkanStopWatch = new();
     private readonly DescriptorPool _descriptorPool;
     private readonly DescriptorSet _descriptorSet;
     private readonly DescriptorSetLayout _setLayout;
@@ -25,7 +24,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly CommandBuffer _cmd;
 
     private readonly VkImage _vkImage;
+    private readonly VkBuffer _vkBuffer;
 
+    private readonly void* _mappedData;
+    
     public MainViewModel()
     {
         //pipeline creation
@@ -44,20 +46,25 @@ public partial class MainViewModel : ObservableObject, IDisposable
         var shaderModule = _context.LoadShaderModule("./assets/shaders/raytracing.comp.spv");
         _pipelineLayout = _context.CreatePipelineLayout(_setLayout);
         _pipeline = _context.CreateComputePipeline(_pipelineLayout, shaderModule);
-        
+        var sz = 2000u;
         //image creation
-        _vkImage = new VkImage(_context, 500, 500, Format.R8G8B8A8Unorm,ImageUsageFlags.StorageBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.TransferSrcBit);
-        _vkImage.TransitionLayout(ImageLayout.General);
+        _vkImage = new VkImage(_context, sz, sz, Format.B8G8R8A8Unorm,ImageUsageFlags.StorageBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.TransferSrcBit);
+        _vkImage.TransitionLayoutImmediate(ImageLayout.General);
         _context.UpdateDescriptorSetImage(ref _descriptorSet, _vkImage.GetImageInfo(), DescriptorType.StorageImage, 0);
 
-        _image = new WriteableBitmap(new PixelSize(500, 500), new Vector(96, 96), PixelFormat.Rgba8888);
+        _image = new WriteableBitmap(new PixelSize((int) sz, (int) sz), new Vector(96, 96), PixelFormat.Bgra8888);
         
         //we don't need it anymore
         _context.DestroyShaderModule(shaderModule);
         _cmd = _context.AllocateCommandBuffer();
+        _vkBuffer = new VkBuffer(_context, _vkImage.Width * _vkImage.Height * 4, BufferUsageFlags.TransferDstBit,
+            MemoryPropertyFlags.HostCachedBit | MemoryPropertyFlags.HostCoherentBit |
+            MemoryPropertyFlags.HostVisibleBit);
+        _vkBuffer.MapMemory(ref _mappedData);
     }
     public void Dispose()
     {
+        _vkBuffer.UnmapMemory();
         _context.DestroyDescriptorPool(_descriptorPool);
         _context.DestroyDescriptorSetLayout(_setLayout);
         _context.DestroyPipelineLayout(_pipelineLayout);
@@ -65,20 +72,22 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _image.Dispose();
         GC.SuppressFinalize(this);
     }
+    
     public void Render()
     {
-        Console.WriteLine("Run compute shader");
         //execute compute shader
         _context.BeginCommandBuffer(_cmd);
+        _vkImage.TransitionLayout(_cmd, ImageLayout.General);
         _context.BindComputePipeline(_cmd, _pipeline);
         _context.BindComputeDescriptorSet(_cmd, _descriptorSet, _pipelineLayout);
-        _context.Dispatch(_cmd, 32, 32, 1);
+        _context.Dispatch(_cmd, _vkImage.Width/32, _vkImage.Height/32, 1);
+        _vkImage.TransitionLayout(_cmd, ImageLayout.TransferSrcOptimal);
+        _vkImage.CopyToBuffer(_cmd, _vkBuffer.Buffer);
         _context.EndCommandBuffer(_cmd);
         _context.WaitForQueue();
-        unsafe
-        {
-            using var buffer = _image.Lock();
-            _vkImage.CopyTo((void*) buffer.Address);
-        }
+        
+        using var buffer = _image.Lock();
+        var size = _vkImage.Width * _vkImage.Height * 4;
+        System.Buffer.MemoryCopy(_mappedData, (void*) buffer.Address, size, size);
     }
 }
