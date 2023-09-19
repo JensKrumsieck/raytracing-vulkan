@@ -153,6 +153,7 @@ public sealed unsafe partial class VkContext : IDisposable
 
     public Result SubmitMainQueue(SubmitInfo submitInfo, Fence fence) => _vk.QueueSubmit(_mainQueue, 1, submitInfo, fence);
     public Result WaitForQueue() => _vk.QueueWaitIdle(_mainQueue);
+    public Result WaitIdle() => _vk.DeviceWaitIdle(_device);
 
     public CommandBuffer AllocateCommandBuffer()
     {

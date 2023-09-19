@@ -50,6 +50,22 @@ public unsafe partial class VkContext
         };
         _vk.UpdateDescriptorSets(_device, 1, &write, 0, default);
     }
+    
+    public void UpdateDescriptorSetBuffer(ref DescriptorSet set, DescriptorBufferInfo bufferInfo, DescriptorType type,
+                                         uint binding)
+    {
+        var write = new WriteDescriptorSet
+        {
+            SType = StructureType.WriteDescriptorSet,
+            DstSet = set,
+            DstBinding = binding,
+            DstArrayElement = 0,
+            DescriptorCount = 1,
+            PBufferInfo = &bufferInfo,
+            DescriptorType = type
+        };
+        _vk.UpdateDescriptorSets(_device, 1, &write, 0, default);
+    }
     public void BindComputeDescriptorSet(CommandBuffer cmd, DescriptorSet set, PipelineLayout layout) =>
         _vk.CmdBindDescriptorSets(cmd, PipelineBindPoint.Compute, layout, 0, 1, set, 0, null);
     public void Dispatch(CommandBuffer cmd, uint groupCountX, uint groupCountY, uint groupCountZ) =>
