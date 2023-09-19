@@ -13,34 +13,40 @@ namespace RaytracingVulkan.UI.ViewModels;
 
 public unsafe partial class MainViewModel : ObservableObject, IDisposable
 {
+    //observables
     [ObservableProperty] private WriteableBitmap _image;
     [ObservableProperty] private CameraViewModel _cameraViewModel;
     [ObservableProperty] private float _frameTime;
     [ObservableProperty] private float _ioTime;
     
+    //camera and input
     private Camera ActiveCamera => _cameraViewModel.ActiveCamera;
+    private readonly InputHandler _input;
+    
+    //stopwatches
     private readonly Stopwatch _frameTimeStopWatch = new();
     private readonly Stopwatch _ioStopWatch = new();
     
+    //vulkan
     private readonly VkContext _context = (Application.Current as App)!.VkContext;
+    private readonly CommandBuffer _cmd;
 
+    //pipeline
     private readonly DescriptorPool _descriptorPool;
     private DescriptorSet _descriptorSet;
     private readonly DescriptorSetLayout _setLayout;
     private readonly PipelineLayout _pipelineLayout;
     private readonly Pipeline _pipeline;
 
-    private readonly CommandBuffer _cmd;
-
+    //image and buffers
     private VkImage? _vkImage;
     private VkBuffer? _vkBuffer;
-
     private readonly VkBuffer _sceneParameterBuffer;
 
+    //pointers
     private void* _mappedData;
     private readonly void* _mappedSceneParameterData;
 
-    private readonly InputHandler _input;
     
     public MainViewModel(InputHandler input)
     {
