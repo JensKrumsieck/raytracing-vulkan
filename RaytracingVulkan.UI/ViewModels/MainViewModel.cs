@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Numerics;
 using Avalonia;
 using Avalonia.Input;
@@ -13,7 +14,14 @@ namespace RaytracingVulkan.UI.ViewModels;
 public unsafe partial class MainViewModel : ObservableObject, IDisposable
 {
     [ObservableProperty] private WriteableBitmap _image;
-
+    [ObservableProperty] private CameraViewModel _cameraViewModel;
+    [ObservableProperty] private float _frameTime;
+    [ObservableProperty] private float _ioTime;
+    
+    private Camera ActiveCamera => _cameraViewModel.ActiveCamera;
+    private readonly Stopwatch _frameTimeStopWatch = new();
+    private readonly Stopwatch _ioStopWatch = new();
+    
     private readonly VkContext _context = (Application.Current as App)!.VkContext;
 
     private readonly DescriptorPool _descriptorPool;
@@ -27,7 +35,6 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
     private VkImage? _vkImage;
     private VkBuffer? _vkBuffer;
 
-    private readonly Camera _camera;
     private readonly VkBuffer _sceneParameterBuffer;
 
     private void* _mappedData;
@@ -38,7 +45,7 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
     public MainViewModel(InputHandler input)
     {
         _input = input;
-        _camera = new Camera(90, 0.1f, 1000f);
+        _cameraViewModel = new CameraViewModel(new Camera(90, 0.1f, 1000f));
         
         //pipeline creation
         var poolSizes = new DescriptorPoolSize[]
@@ -84,6 +91,7 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
     
     public void Dispose()
     {
+        _context.WaitIdle();
         _sceneParameterBuffer.Dispose();
         _image.Dispose();
         _vkBuffer?.Dispose();
@@ -98,10 +106,22 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
     
     public void Render()
     {
-        HandleInput();
+        if(_vkImage is null) return;
+        _frameTimeStopWatch.Start();
+        
+        HandleInput(FrameTime / 1000f);
         UpdateSceneParameters();
         RenderImage();
+        
+        _ioStopWatch.Start();
         CopyImageToHost();
+        _ioStopWatch.Stop();
+        IoTime = (float) _ioStopWatch.Elapsed.TotalMilliseconds;
+        _ioStopWatch.Reset();
+        
+        _frameTimeStopWatch.Stop();
+        FrameTime = (float) _frameTimeStopWatch.Elapsed.TotalMilliseconds;
+        _frameTimeStopWatch.Reset();
     }
 
     public void Resize(uint x, uint y)
@@ -124,7 +144,7 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
                                  MemoryPropertyFlags.HostVisibleBit);
         _vkBuffer.MapMemory(ref _mappedData);
         
-        _camera.Resize(x, y);
+        ActiveCamera.Resize(x, y);
     }
 
     private void RenderImage()
@@ -153,30 +173,30 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
         //update ubo
         var parameters = new SceneParameters
         {
-            CameraProjection = _camera.Projection,
-            InverseCameraProjection = _camera.InverseProjection,
-            CameraView = _camera.View,
-            InverseCameraView = _camera.InverseView
+            CameraProjection = ActiveCamera.Projection,
+            InverseCameraProjection = ActiveCamera.InverseProjection,
+            CameraView = ActiveCamera.View,
+            InverseCameraView = ActiveCamera.InverseView
         };
         System.Buffer.MemoryCopy(&parameters, _mappedSceneParameterData, sizeof(SceneParameters), sizeof(SceneParameters));
     }
 
-    private void HandleInput()
+    private void HandleInput(float deltaTime)
     {
         //camera move
-        var speed = .01f;
-        var right = Vector3.Cross(_camera.Forward, Vector3.UnitY);
+        var speed = 5f * deltaTime;
+        var right = Vector3.Cross(ActiveCamera.Forward, Vector3.UnitY);
         var moved = false;
         
         var moveVector = Vector3.Zero;
         if (_input.PressedKeys.Contains(Key.W))
         {
-            moveVector += _camera.Forward;
+            moveVector += ActiveCamera.Forward;
             moved = true;
         }
         if (_input.PressedKeys.Contains(Key.S))
         { 
-            moveVector -= _camera.Forward;
+            moveVector -= ActiveCamera.Forward;
             moved = true;
             
         }
@@ -190,12 +210,22 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
             moveVector -= right;
             moved = true;
         }
+        if (_input.PressedKeys.Contains(Key.Q))
+        {
+            moveVector += Vector3.UnitY;
+            moved = true;
+        }
+        if (_input.PressedKeys.Contains(Key.E))
+        {
+            moveVector -= Vector3.UnitY;
+            moved = true;
+        }
 
         if (!moved) return;
         if(moveVector.Length() == 0) return;
         
         moveVector = Vector3.Normalize(moveVector) * speed;
-        _camera.Position += moveVector;
-        _camera.RecalculateView();
+        _cameraViewModel.Position += moveVector;
+        ActiveCamera.RecalculateView();
     }
 }

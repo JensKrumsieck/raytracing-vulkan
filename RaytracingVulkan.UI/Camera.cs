@@ -5,7 +5,7 @@ namespace RaytracingVulkan.UI;
 
 public class Camera
 {
-    public Vector3 Position;
+    public Vector3 Position { get; set; }
     public Vector3 Forward;
     
     public Matrix4x4 Projection;
