@@ -5,11 +5,16 @@ We will build a small raytracer, similar to the one from the famous ["Ray Tracin
 
 I choose to use the [Silk.NET Vulkan bindings](https://github.com/dotnet/Silk.NET) for this project.
 
-## [Part 1](https://jenskrumsieck.medium.com/raytracing-in-vulkan-using-c-part-1-997cb284f7e8)
+___________
+## Medium Stories:
+### [Part 1](https://jenskrumsieck.medium.com/raytracing-in-vulkan-using-c-part-1-997cb284f7e8)
+### [Part 2](https://jenskrumsieck.medium.com/raytracing-in-vulkan-using-c-part-2-3a8e21e27139)
 
+____________
 Feel free to contribute or leave suggestions.
 
 ## Resources:
 * ["Ray Tracing in One Weekend" series](https://raytracing.github.io/)
 * [The Cherno: Ray Tracing Series on YouTube](https://www.youtube.com/watch?v=gfW1Fhd9u9Q&list=PLlrATfBNZ98edc5GshdBtREv5asFW3yXl)
+* [Scratch a Pixel](https://www.scratchapixel.com/)
 * [Silk.NET](https://github.com/dotnet/Silk.NET)
