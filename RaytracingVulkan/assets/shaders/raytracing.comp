@@ -39,12 +39,10 @@ bool hitSphere(sphere sphere, ray ray, inout payload payload)
     if (discriminant < 0) return false;
     
     //calculate hitpoint and normal
-    float t = (-b - sqrt(discriminant) / (2.0 * a));
+    float t = (-b - sqrt(discriminant)) / (2.0 * a);
     
-    if (t <= 0.001){
-        t = (-b+sqrt(discriminant) / (2.0 * a));
-        if(t <= 0.001) return false;
-    }
+    if (t <= 0.001) return false;
+    
     payload.hitDistance = t;
     
     vec3 hitPoint = ray.origin + t * ray.direction;
@@ -87,7 +85,7 @@ vec3 PerPixel(ray ray)
         }
     }
     
-    if (hit) return 0.5 * (payload.normal * vec3(1,-1,1) + vec3(1));
+    if (hit) return 0.5 * (payload.normal + vec3(1));
     
     vec3 unitDir = normalize(ray.direction);
     float a = 0.5 * (unitDir.y + 1.0);
