@@ -10,5 +10,5 @@
     <Design.DataContext>
         <viewModels:MainViewModel/>
     </Design.DataContext>
-    <Image Source="{Binding Image}" x:Name="Image" Width="500" Height="500"/>
+    <Image Source="{Binding Image}" x:Name="Image" Margin="0" Stretch="Fill" StretchDirection="Both"/>
 </Window>

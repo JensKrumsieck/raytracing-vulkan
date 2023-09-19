@@ -15,14 +15,18 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = _viewModel = new MainViewModel(_input);
+        Image.SizeChanged += Resize;
     }
+
+    private void Resize(object? sender, SizeChangedEventArgs e) => _viewModel.Resize((uint) e.NewSize.Width, (uint)  e.NewSize.Height);
+
     public override void Render(DrawingContext context)
     {
         base.Render(context);
         _viewModel.Render();
         Dispatcher.UIThread.Post(InvalidateVisual, DispatcherPriority.Render);
+        Dispatcher.UIThread.Post(Image.InvalidateVisual, DispatcherPriority.Render);
     }
-    
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
@@ -38,6 +42,7 @@ public partial class MainWindow : Window
     protected override void OnClosing(WindowClosingEventArgs e)
     {
         base.OnClosing(e);
+        Image.SizeChanged -= Resize;
         _viewModel.Dispose();
     }
 }

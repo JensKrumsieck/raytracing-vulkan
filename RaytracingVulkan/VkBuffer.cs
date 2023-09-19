@@ -5,11 +5,11 @@ namespace RaytracingVulkan;
 
 public sealed unsafe class VkBuffer : Allocation
 {
-    public uint Size;
+    public readonly uint Size;
     public Buffer Buffer;
 
-    private BufferUsageFlags _bufferUsageFlags;
-    private MemoryPropertyFlags _memoryPropertyFlags;
+    private readonly BufferUsageFlags _bufferUsageFlags;
+    private readonly MemoryPropertyFlags _memoryPropertyFlags;
 
     public VkBuffer(VkContext context, uint size, BufferUsageFlags usageFlags, MemoryPropertyFlags memoryFlags) : base(context)
     {
@@ -43,8 +43,16 @@ public sealed unsafe class VkBuffer : Allocation
         VkContext.EndSingleTimeCommands(cmd);
     }
 
+    public DescriptorBufferInfo GetBufferInfo() => new()
+    {
+        Buffer = Buffer,
+        Offset = 0,
+        Range = Size
+    };
+    
     public override void Dispose()
     {
+        UnmapMemory();
         Vk.FreeMemory(Device, Memory, null);
         Vk.DestroyBuffer(Device, Buffer, null);
     }

@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Numerics;
 using Avalonia;
+using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Microsoft.Toolkit.Mvvm.ComponentModel;
 using Silk.NET.Vulkan;
+using Vector = Avalonia.Vector;
 
 namespace RaytracingVulkan.UI.ViewModels;
 
@@ -14,63 +17,77 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
     private readonly VkContext _context = (Application.Current as App)!.VkContext;
 
     private readonly DescriptorPool _descriptorPool;
-    private readonly DescriptorSet _descriptorSet;
+    private DescriptorSet _descriptorSet;
     private readonly DescriptorSetLayout _setLayout;
     private readonly PipelineLayout _pipelineLayout;
     private readonly Pipeline _pipeline;
 
     private readonly CommandBuffer _cmd;
 
-    private readonly VkImage _vkImage;
-    private readonly VkBuffer _vkBuffer;
+    private VkImage? _vkImage;
+    private VkBuffer? _vkBuffer;
 
-    private readonly void* _mappedData;
+    private readonly Camera _camera;
+    private readonly VkBuffer _sceneParameterBuffer;
 
-    private InputHandler _input;
+    private void* _mappedData;
+    private readonly void* _mappedSceneParameterData;
+
+    private readonly InputHandler _input;
     
     public MainViewModel(InputHandler input)
     {
         _input = input;
+        _camera = new Camera(90, 0.1f, 1000f);
         
         //pipeline creation
-        var poolSizes = new DescriptorPoolSize[] {new() {Type = DescriptorType.StorageImage, DescriptorCount = 1000}};
+        var poolSizes = new DescriptorPoolSize[]
+        {
+            new() {Type = DescriptorType.StorageImage, DescriptorCount = 1000},
+            new() {Type = DescriptorType.UniformBuffer, DescriptorCount = 1000}
+        };
+        
         _descriptorPool = _context.CreateDescriptorPool(poolSizes);
-        var binding = new DescriptorSetLayoutBinding
+        var binding0 = new DescriptorSetLayoutBinding
         {
             Binding = 0,
             DescriptorCount = 1,
             DescriptorType = DescriptorType.StorageImage,
             StageFlags = ShaderStageFlags.ComputeBit
         };
-        _setLayout = _context.CreateDescriptorSetLayout(new[] {binding});
+        var binding1 = new DescriptorSetLayoutBinding
+        {
+            Binding = 1,
+            DescriptorCount = 1,
+            DescriptorType = DescriptorType.UniformBuffer,
+            StageFlags = ShaderStageFlags.ComputeBit
+        };
+
+        _setLayout = _context.CreateDescriptorSetLayout(new[] {binding0, binding1});
         _descriptorSet = _context.AllocateDescriptorSet(_descriptorPool, _setLayout);
 
         var shaderModule = _context.LoadShaderModule("./assets/shaders/raytracing.comp.spv");
         _pipelineLayout = _context.CreatePipelineLayout(_setLayout);
         _pipeline = _context.CreateComputePipeline(_pipelineLayout, shaderModule);
-        var sz = 2000u;
-        //image creation
-        _vkImage = new VkImage(_context, sz, sz, Format.B8G8R8A8Unorm,ImageUsageFlags.StorageBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.TransferSrcBit);
-        _vkImage.TransitionLayoutImmediate(ImageLayout.General);
-        _context.UpdateDescriptorSetImage(ref _descriptorSet, _vkImage.GetImageInfo(), DescriptorType.StorageImage, 0);
-
-        _image = new WriteableBitmap(new PixelSize((int) sz, (int) sz), new Vector(96, 96), PixelFormat.Bgra8888);
+        _sceneParameterBuffer = new VkBuffer(_context, (uint) sizeof(SceneParameters), BufferUsageFlags.UniformBufferBit, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
+        _sceneParameterBuffer.MapMemory(ref _mappedSceneParameterData);
+        
+        _context.UpdateDescriptorSetBuffer(ref _descriptorSet, _sceneParameterBuffer.GetBufferInfo(), DescriptorType.UniformBuffer, 1);
+        
+        //needed for initial binding
+        _image = new WriteableBitmap(new PixelSize(1, 1), new Vector(96, 96), PixelFormat.Bgra8888);
         
         //we don't need it anymore
         _context.DestroyShaderModule(shaderModule);
         _cmd = _context.AllocateCommandBuffer();
-        _vkBuffer = new VkBuffer(_context, _vkImage.Width * _vkImage.Height * 4, BufferUsageFlags.TransferDstBit,
-            MemoryPropertyFlags.HostCachedBit | MemoryPropertyFlags.HostCoherentBit |
-            MemoryPropertyFlags.HostVisibleBit);
-        _vkBuffer.MapMemory(ref _mappedData);
     }
     
     public void Dispose()
     {
-        _vkBuffer.UnmapMemory();
+        _sceneParameterBuffer.Dispose();
         _image.Dispose();
-        _vkBuffer.Dispose();
-        _vkImage.Dispose();
+        _vkBuffer?.Dispose();
+        _vkImage?.Dispose();
         
         _context.DestroyDescriptorPool(_descriptorPool);
         _context.DestroyDescriptorSetLayout(_setLayout);
@@ -82,19 +99,44 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
     public void Render()
     {
         HandleInput();
+        UpdateSceneParameters();
         RenderImage();
         CopyImageToHost();
     }
+
+    public void Resize(uint x, uint y)
+    {
+        _vkImage?.Dispose();
+        _vkImage = new VkImage(_context, x, y, Format.B8G8R8A8Unorm,ImageUsageFlags.StorageBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.TransferSrcBit);
+        _vkImage.TransitionLayoutImmediate(ImageLayout.General);
+        _context.UpdateDescriptorSetImage(ref _descriptorSet, _vkImage.GetImageInfo(), DescriptorType.StorageImage, 0);
+
+        //save old image
+        var tmp = _image;
+        _image = new WriteableBitmap(new PixelSize((int) x, (int) y), new Vector(96, 96), PixelFormat.Bgra8888);
+        OnPropertyChanged(nameof(Image));
+        //dispose old
+        tmp?.Dispose();
+        
+        _vkBuffer?.Dispose();
+        _vkBuffer = new VkBuffer(_context, _vkImage.Width * _vkImage.Height * 4, BufferUsageFlags.TransferDstBit,
+                                 MemoryPropertyFlags.HostCachedBit | MemoryPropertyFlags.HostCoherentBit |
+                                 MemoryPropertyFlags.HostVisibleBit);
+        _vkBuffer.MapMemory(ref _mappedData);
+        
+        _camera.Resize(x, y);
+    }
+
     private void RenderImage()
     {
         //execute compute shader
         _context.BeginCommandBuffer(_cmd);
-        _vkImage.TransitionLayout(_cmd, ImageLayout.General);
+        _vkImage!.TransitionLayout(_cmd, ImageLayout.General);
         _context.BindComputePipeline(_cmd, _pipeline);
         _context.BindComputeDescriptorSet(_cmd, _descriptorSet, _pipelineLayout);
         _context.Dispatch(_cmd, _vkImage.Width/32, _vkImage.Height/32, 1);
         _vkImage.TransitionLayout(_cmd, ImageLayout.TransferSrcOptimal);
-        _vkImage.CopyToBuffer(_cmd, _vkBuffer.Buffer);
+        _vkImage.CopyToBuffer(_cmd, _vkBuffer!.Buffer);
         _context.EndCommandBuffer(_cmd);
         _context.WaitForQueue();
     }
@@ -102,12 +144,58 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
     private void CopyImageToHost()
     {
         using var buffer = _image.Lock();
-        var size = _vkImage.Width * _vkImage.Height * 4;
+        var size = _vkImage!.Width * _vkImage.Height * 4;
         System.Buffer.MemoryCopy(_mappedData, (void*) buffer.Address, size, size);
     }
-    
+
+    private void UpdateSceneParameters()
+    {
+        //update ubo
+        var parameters = new SceneParameters
+        {
+            CameraProjection = _camera.Projection,
+            InverseCameraProjection = _camera.InverseProjection,
+            CameraView = _camera.View,
+            InverseCameraView = _camera.InverseView
+        };
+        System.Buffer.MemoryCopy(&parameters, _mappedSceneParameterData, sizeof(SceneParameters), sizeof(SceneParameters));
+    }
+
     private void HandleInput()
     {
         //camera move
+        var speed = .01f;
+        var right = Vector3.Cross(_camera.Forward, Vector3.UnitY);
+        var moved = false;
+        
+        var moveVector = Vector3.Zero;
+        if (_input.PressedKeys.Contains(Key.W))
+        {
+            moveVector += _camera.Forward;
+            moved = true;
+        }
+        if (_input.PressedKeys.Contains(Key.S))
+        { 
+            moveVector -= _camera.Forward;
+            moved = true;
+            
+        }
+        if (_input.PressedKeys.Contains(Key.D))
+        {
+            moveVector += right;
+            moved = true;
+        }
+        if (_input.PressedKeys.Contains(Key.A))
+        {
+            moveVector -= right;
+            moved = true;
+        }
+
+        if (!moved) return;
+        if(moveVector.Length() == 0) return;
+        
+        moveVector = Vector3.Normalize(moveVector) * speed;
+        _camera.Position += moveVector;
+        _camera.RecalculateView();
     }
 }
