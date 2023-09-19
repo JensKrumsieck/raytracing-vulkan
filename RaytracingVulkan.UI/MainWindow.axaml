@@ -1,0 +1,35 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewModels="clr-namespace:RaytracingVulkan.UI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="RaytracingVulkan.UI.MainWindow"
+        x:DataType="viewModels:MainViewModel"
+        Title="RaytracingVulkan.UI">
+    <Design.DataContext>
+        <viewModels:MainViewModel/>
+    </Design.DataContext>
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Width="250" Margin="10">
+            <TextBlock>Camera Position</TextBlock>
+            <StackPanel Orientation="Horizontal">
+                <NumericUpDown Background="Red" Value="{Binding CameraViewModel.X}" Increment="0.01" ShowButtonSpinner="False" Width="50" Margin="5"/>
+                <NumericUpDown Background="Green" Text="{Binding CameraViewModel.Y}" Increment="0.01" ShowButtonSpinner="False" Width="50" Margin="5"/>
+                <NumericUpDown Background="Blue" Text="{Binding CameraViewModel.Z}" Increment="0.01" ShowButtonSpinner="False" Width="50" Margin="5"/>
+            </StackPanel>
+            <Separator/>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Last Render: "/>
+                <TextBlock Text="{Binding FrameTime}" />
+                <TextBlock Text=" ms"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Copy Image to UI: "/>
+                <TextBlock Text="{Binding IoTime}" />
+                <TextBlock Text=" ms"/>
+            </StackPanel>
+        </StackPanel>
+        <Image Source="{Binding Image}" x:Name="Image" Margin="0" Stretch="Fill" StretchDirection="Both"/>
+    </DockPanel>
+</Window>
