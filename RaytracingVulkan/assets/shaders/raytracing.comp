@@ -13,6 +13,7 @@ layout(binding = 1, std140) uniform SceneData{
     mat4 invCamView;
     uint frameIndex;
 } sceneData;
+layout(binding = 0, rgba8) uniform image2D accumulationTexture;
 
 struct ray {
     vec3 origin;
@@ -127,14 +128,24 @@ void main()
     //anti aliasing
     uint samplesPerPixel = 10;
     float influence = 0.005;
-    vec3 color = vec3(0);    
+    vec3 frameColor = vec3(0);    
     for(int i = 0; i < samplesPerPixel; i++) {
         vec3 dir = GetRayDirection(uv) + influence * hash3();
         ray ray = ray(origin, dir);
-        color += PerPixel(ray);
+        frameColor += PerPixel(ray);
     }
-    color /= samplesPerPixel;
+    frameColor /= samplesPerPixel;
+    
+    //load existing image data 
+    vec3 currentColor = imageLoad(accumulationTexture, ivec2(gl_GlobalInvocationID.xy)).xyz;
+    currentColor *= (sceneData.frameIndex - 1); // is built from frameIndex - 1 frames
+    currentColor += frameColor; //add color of this frame and store
+    imageStore(accumulationTexture, ivec2(gl_GlobalInvocationID), vec4(currentColor, 1));
+    
+    //use corrected color for drawn texture
+    vec3 color = currentColor / sceneData.frameIndex;
     color = clamp(color, 0, 1);
     
+    //return display image
     imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));
 }

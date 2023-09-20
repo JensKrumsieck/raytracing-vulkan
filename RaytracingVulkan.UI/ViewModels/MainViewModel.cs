@@ -40,6 +40,7 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
 
     //image and buffers
     private VkImage? _vkImage;
+    private VkImage? _accumulationTexture;
     private VkBuffer? _vkBuffer;
     private readonly VkBuffer _sceneParameterBuffer;
 
@@ -47,6 +48,8 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
     private void* _mappedData;
     private readonly void* _mappedSceneParameterData;
 
+    private uint _viewportWidth;
+    private uint _viewportHeight;
     private uint _frameIndex = 1;
     
     public MainViewModel(InputHandler input)
@@ -76,8 +79,9 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
             DescriptorType = DescriptorType.UniformBuffer,
             StageFlags = ShaderStageFlags.ComputeBit
         };
-
-        _setLayout = _context.CreateDescriptorSetLayout(new[] {binding0, binding1});
+        var binding2 = binding0 with {Binding = 2};
+        
+        _setLayout = _context.CreateDescriptorSetLayout(new[] {binding0, binding1, binding2});
         _descriptorSet = _context.AllocateDescriptorSet(_descriptorPool, _setLayout);
 
         var shaderModule = _context.LoadShaderModule("./assets/shaders/raytracing.comp.spv");
@@ -134,24 +138,9 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
 
     public void Resize(uint x, uint y)
     {
-        _vkImage?.Dispose();
-        _vkImage = new VkImage(_context, x, y, Format.B8G8R8A8Unorm,ImageUsageFlags.StorageBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.TransferSrcBit);
-        _vkImage.TransitionLayoutImmediate(ImageLayout.General);
-        _context.UpdateDescriptorSetImage(ref _descriptorSet, _vkImage.GetImageInfo(), DescriptorType.StorageImage, 0);
-
-        //save old image
-        var tmp = _image;
-        _image = new WriteableBitmap(new PixelSize((int) x, (int) y), new Vector(96, 96), PixelFormat.Bgra8888);
-        OnPropertyChanged(nameof(Image));
-        //dispose old
-        tmp?.Dispose();
-        
-        _vkBuffer?.Dispose();
-        _vkBuffer = new VkBuffer(_context, _vkImage.Width * _vkImage.Height * 4, BufferUsageFlags.TransferDstBit,
-                                 MemoryPropertyFlags.HostCachedBit | MemoryPropertyFlags.HostCoherentBit |
-                                 MemoryPropertyFlags.HostVisibleBit);
-        _vkBuffer.MapMemory(ref _mappedData);
-        
+        _viewportWidth = x;
+        _viewportHeight = y;
+        Reset();
         ActiveCamera.Resize(x, y);
     }
 
@@ -236,5 +225,33 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
         moveVector = Vector3.Normalize(moveVector) * speed;
         _cameraViewModel.Position += moveVector;
         ActiveCamera.RecalculateView();
+        Reset();
+    }
+
+    public void Reset()
+    {
+        _vkImage?.Dispose();
+        _vkImage = new VkImage(_context, _viewportWidth, _viewportHeight, Format.B8G8R8A8Unorm,ImageUsageFlags.StorageBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.TransferSrcBit);
+        _vkImage.TransitionLayoutImmediate(ImageLayout.General);
+        _context.UpdateDescriptorSetImage(ref _descriptorSet, _vkImage.GetImageInfo(), DescriptorType.StorageImage, 0);
+        
+        _accumulationTexture?.Dispose();
+        _accumulationTexture = new VkImage(_context, _viewportWidth, _viewportHeight, Format.B8G8R8A8Unorm,ImageUsageFlags.StorageBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.TransferSrcBit);
+        _accumulationTexture.TransitionLayoutImmediate(ImageLayout.General);
+        _context.UpdateDescriptorSetImage(ref _descriptorSet, _accumulationTexture.GetImageInfo(), DescriptorType.StorageImage, 2);
+        _frameIndex = 1;
+        
+        //save old image
+        var tmp = _image;
+        _image = new WriteableBitmap(new PixelSize((int) _vkImage.Width, (int) _vkImage.Height), new Vector(96, 96), PixelFormat.Bgra8888);
+        OnPropertyChanged(nameof(Image));
+        //dispose old
+        tmp?.Dispose();
+        
+        _vkBuffer?.Dispose();
+        _vkBuffer = new VkBuffer(_context, _vkImage.Width * _vkImage.Height * 4, BufferUsageFlags.TransferDstBit,
+                                 MemoryPropertyFlags.HostCachedBit | MemoryPropertyFlags.HostCoherentBit |
+                                 MemoryPropertyFlags.HostVisibleBit);
+        _vkBuffer.MapMemory(ref _mappedData);
     }
 }
