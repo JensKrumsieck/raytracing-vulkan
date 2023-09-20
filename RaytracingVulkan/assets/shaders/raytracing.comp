@@ -3,6 +3,7 @@
 
 #include "./include/random.glsl"
 #include "./include/constants.glsl"
+#include "./include/color.glsl"
 
 layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 layout(binding = 0, rgba8) uniform writeonly image2D resultImage;
@@ -13,7 +14,7 @@ layout(binding = 1, std140) uniform SceneData{
     mat4 invCamView;
     uint frameIndex;
 } sceneData;
-layout(binding = 0, rgba8) uniform image2D accumulationTexture;
+layout(binding = 2, rgba32f) uniform image2D accumulationTexture;
 
 struct ray {
     vec3 origin;
@@ -137,13 +138,13 @@ void main()
     frameColor /= samplesPerPixel;
     
     //load existing image data 
-    vec3 currentColor = imageLoad(accumulationTexture, ivec2(gl_GlobalInvocationID.xy)).xyz;
-    currentColor *= (sceneData.frameIndex - 1); // is built from frameIndex - 1 frames
-    currentColor += frameColor; //add color of this frame and store
-    imageStore(accumulationTexture, ivec2(gl_GlobalInvocationID), vec4(currentColor, 1));
+    vec3 currentColor = imageLoad(accumulationTexture, ivec2(gl_GlobalInvocationID.xy)).rgb;
+    currentColor += frameColor;
+    imageStore(accumulationTexture, ivec2(gl_GlobalInvocationID.xy), vec4(currentColor, 1));
     
     //use corrected color for drawn texture
-    vec3 color = currentColor / sceneData.frameIndex;
+    vec3 color = currentColor.rgb / sceneData.frameIndex;
+    color = gamma_correction(color);
     color = clamp(color, 0, 1);
     
     //return display image
