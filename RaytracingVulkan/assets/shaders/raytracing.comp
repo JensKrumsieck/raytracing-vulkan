@@ -1,4 +1,7 @@
 #version 450
+#extension GL_GOOGLE_include_directive : require
+
+#include "./include/random.glsl"
 
 layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 layout(binding = 0, rgba8) uniform writeonly image2D resultImage;
@@ -7,7 +10,7 @@ layout(binding = 1, std140) uniform SceneData{
     mat4 invCamProj;
     mat4 camView;
     mat4 invCamView;
-    vec3 color;
+    uint frameIndex;
 } sceneData;
 
 struct ray {
@@ -93,19 +96,29 @@ vec3 PerPixel(ray ray)
 }
 
 void main() 
-{
+{ 
     vec2 imageSize = vec2(imageSize(resultImage));
     
     //calculate uv coords
     vec2 uv = (gl_GlobalInvocationID.xy + 0.5) / imageSize.xy; //ndc space
     uv.x = uv.x * 2 - 1; //screen space x
     uv.y = 1 - uv.y * 2; //screen space y
+
+    //modify random seed
+    gState *= floatBitsToUint(uv.y * uv.x / 1000) * gl_GlobalInvocationID.x * sceneData.frameIndex;
     
-    vec3 dir = GetRayDirection(uv);
     vec3 origin = sceneData.invCamView[3].xyz;
-    ray ray = ray(origin, dir);
-    
-    vec3 color = PerPixel(ray);    
+
+    //anti aliasing
+    uint samplesPerPixel = 10;
+    float influence = 0.005;
+    vec3 color = vec3(0);    
+    for(int i = 0; i < samplesPerPixel; i++) {
+        vec3 dir = GetRayDirection(uv) + influence * hash3();
+        ray ray = ray(origin, dir);
+        color += PerPixel(ray);
+    }
+    color /= samplesPerPixel;
     color = clamp(color, 0, 1);
     
     imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));

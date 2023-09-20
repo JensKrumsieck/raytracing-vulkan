@@ -47,6 +47,7 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
     private void* _mappedData;
     private readonly void* _mappedSceneParameterData;
 
+    private uint _frameIndex = 1;
     
     public MainViewModel(InputHandler input)
     {
@@ -128,6 +129,7 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
         _frameTimeStopWatch.Stop();
         FrameTime = (float) _frameTimeStopWatch.Elapsed.TotalMilliseconds;
         _frameTimeStopWatch.Reset();
+        _frameIndex++;
     }
 
     public void Resize(uint x, uint y)
@@ -182,7 +184,8 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
             CameraProjection = ActiveCamera.Projection,
             InverseCameraProjection = ActiveCamera.InverseProjection,
             CameraView = ActiveCamera.View,
-            InverseCameraView = ActiveCamera.InverseView
+            InverseCameraView = ActiveCamera.InverseView,
+            FrameIndex = _frameIndex
         };
         System.Buffer.MemoryCopy(&parameters, _mappedSceneParameterData, sizeof(SceneParameters), sizeof(SceneParameters));
     }

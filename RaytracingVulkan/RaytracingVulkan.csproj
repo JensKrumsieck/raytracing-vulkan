@@ -19,7 +19,7 @@
         <None Update="$(ProjectDir)\assets\**\*">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
-        <ShaderDir Include="$(ProjectDir)\assets\shaders\**\*" />
+        <ShaderDir Include="$(ProjectDir)\assets\shaders\*" />
         <CompiledShaders Include="$(ProjectDir)\assets\shaders\**\*.spv" />
     </ItemGroup>
     
