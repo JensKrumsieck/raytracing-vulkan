@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 
-namespace RaytracingVulkan.UI;
+namespace RaytracingVulkan;
 
 [StructLayout(LayoutKind.Sequential)]
 public struct SceneParameters

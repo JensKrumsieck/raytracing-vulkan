@@ -11,7 +11,7 @@ using Vector = Avalonia.Vector;
 
 namespace RaytracingVulkan.UI.ViewModels;
 
-public unsafe partial class MainViewModel : ObservableObject, IDisposable
+public partial class MainViewModel : ObservableObject, IDisposable
 {
     //observables
     [ObservableProperty] private WriteableBitmap _image;
@@ -22,108 +22,29 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
     //camera and input
     private Camera ActiveCamera => _cameraViewModel.ActiveCamera;
     private readonly InputHandler _input;
+    private readonly Renderer _renderer;
     
     //stopwatches
     private readonly Stopwatch _frameTimeStopWatch = new();
     private readonly Stopwatch _ioStopWatch = new();
     
-    //vulkan
-    private readonly VkContext _context = (Application.Current as App)!.VkContext;
-    private readonly CommandBuffer _cmd;
-
-    //pipeline
-    private readonly DescriptorPool _descriptorPool;
-    private DescriptorSet _descriptorSet;
-    private readonly DescriptorSetLayout _setLayout;
-    private readonly PipelineLayout _pipelineLayout;
-    private readonly Pipeline _pipeline;
-
-    //image and buffers
-    private VkImage? _vkImage;
-    private VkImage? _accumulationTexture;
-    private VkBuffer? _vkBuffer;
-    private readonly VkBuffer _sceneParameterBuffer;
-
-    //pointers
-    private void* _mappedData;
-    private readonly void* _mappedSceneParameterData;
-
     private uint _viewportWidth;
     private uint _viewportHeight;
-    private uint _frameIndex = 1;
     
     public MainViewModel(InputHandler input)
     {
         _input = input;
         _cameraViewModel = new CameraViewModel(new Camera(90, 0.1f, 1000f));
-        
-        //pipeline creation
-        var poolSizes = new DescriptorPoolSize[]
-        {
-            new() {Type = DescriptorType.StorageImage, DescriptorCount = 1000},
-            new() {Type = DescriptorType.UniformBuffer, DescriptorCount = 1000}
-        };
-        
-        _descriptorPool = _context.CreateDescriptorPool(poolSizes);
-        var binding0 = new DescriptorSetLayoutBinding
-        {
-            Binding = 0,
-            DescriptorCount = 1,
-            DescriptorType = DescriptorType.StorageImage,
-            StageFlags = ShaderStageFlags.ComputeBit
-        };
-        var binding1 = new DescriptorSetLayoutBinding
-        {
-            Binding = 1,
-            DescriptorCount = 1,
-            DescriptorType = DescriptorType.UniformBuffer,
-            StageFlags = ShaderStageFlags.ComputeBit
-        };
-        var binding2 = binding0 with {Binding = 2};
-        
-        _setLayout = _context.CreateDescriptorSetLayout(new[] {binding0, binding1, binding2});
-        _descriptorSet = _context.AllocateDescriptorSet(_descriptorPool, _setLayout);
-
-        var shaderModule = _context.LoadShaderModule("./assets/shaders/raytracing.comp.spv");
-        _pipelineLayout = _context.CreatePipelineLayout(_setLayout);
-        _pipeline = _context.CreateComputePipeline(_pipelineLayout, shaderModule);
-        _sceneParameterBuffer = new VkBuffer(_context, (uint) sizeof(SceneParameters), BufferUsageFlags.UniformBufferBit, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
-        _sceneParameterBuffer.MapMemory(ref _mappedSceneParameterData);
-        
-        _context.UpdateDescriptorSetBuffer(ref _descriptorSet, _sceneParameterBuffer.GetBufferInfo(), DescriptorType.UniformBuffer, 1);
-        
         //needed for initial binding
         _image = new WriteableBitmap(new PixelSize(1, 1), new Vector(96, 96), PixelFormat.Bgra8888);
-        
-        //we don't need it anymore
-        _context.DestroyShaderModule(shaderModule);
-        _cmd = _context.AllocateCommandBuffer();
+        _renderer = new Renderer((Application.Current as App)!.VkContext);
     }
-    
-    public void Dispose()
-    {
-        _context.WaitIdle();
-        _sceneParameterBuffer.Dispose();
-        _image.Dispose();
-        _vkBuffer?.Dispose();
-        _vkImage?.Dispose();
-        
-        _context.DestroyDescriptorPool(_descriptorPool);
-        _context.DestroyDescriptorSetLayout(_setLayout);
-        _context.DestroyPipelineLayout(_pipelineLayout);
-        _context.DestroyPipeline(_pipeline);
-        GC.SuppressFinalize(this);
-    }
-    
     public void Render()
     {
-        if(_vkImage is null) return;
+        if (!_renderer.IsReady) return;
         _frameTimeStopWatch.Start();
-        
         HandleInput(FrameTime / 1000f);
-        UpdateSceneParameters();
-        RenderImage();
-        
+        _renderer.Render(ActiveCamera);
         _ioStopWatch.Start();
         CopyImageToHost();
         _ioStopWatch.Stop();
@@ -133,52 +54,16 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
         _frameTimeStopWatch.Stop();
         FrameTime = (float) _frameTimeStopWatch.Elapsed.TotalMilliseconds;
         _frameTimeStopWatch.Reset();
-        _frameIndex++;
     }
-
     public void Resize(uint x, uint y)
     {
         _viewportWidth = x;
         _viewportHeight = y;
-        Reset();
+        _renderer.Resize(x, y);
+        _image = new WriteableBitmap(new PixelSize((int) _viewportWidth, (int) _viewportHeight), new Vector(96, 96), PixelFormat.Bgra8888); 
         ActiveCamera.Resize(x, y);
+        Reset();
     }
-
-    private void RenderImage()
-    {
-        //execute compute shader
-        _context.BeginCommandBuffer(_cmd);
-        _vkImage!.TransitionLayout(_cmd, ImageLayout.General);
-        _context.BindComputePipeline(_cmd, _pipeline);
-        _context.BindComputeDescriptorSet(_cmd, _descriptorSet, _pipelineLayout);
-        _context.Dispatch(_cmd, _vkImage.Width/32, _vkImage.Height/32, 1);
-        _vkImage.TransitionLayout(_cmd, ImageLayout.TransferSrcOptimal);
-        _vkImage.CopyToBuffer(_cmd, _vkBuffer!.Buffer);
-        _context.EndCommandBuffer(_cmd);
-        _context.WaitForQueue();
-    }
-
-    private void CopyImageToHost()
-    {
-        using var buffer = _image.Lock();
-        var size = _vkImage!.Width * _vkImage.Height * 4;
-        System.Buffer.MemoryCopy(_mappedData, (void*) buffer.Address, size, size);
-    }
-
-    private void UpdateSceneParameters()
-    {
-        //update ubo
-        var parameters = new SceneParameters
-        {
-            CameraProjection = ActiveCamera.Projection,
-            InverseCameraProjection = ActiveCamera.InverseProjection,
-            CameraView = ActiveCamera.View,
-            InverseCameraView = ActiveCamera.InverseView,
-            FrameIndex = _frameIndex
-        };
-        System.Buffer.MemoryCopy(&parameters, _mappedSceneParameterData, sizeof(SceneParameters), sizeof(SceneParameters));
-    }
-
     private void HandleInput(float deltaTime)
     {
         //camera move
@@ -228,30 +113,27 @@ public unsafe partial class MainViewModel : ObservableObject, IDisposable
         Reset();
     }
 
-    public void Reset()
+    private void CopyImageToHost()
     {
-        _vkImage?.Dispose();
-        _vkImage = new VkImage(_context, _viewportWidth, _viewportHeight, Format.B8G8R8A8Unorm,ImageUsageFlags.StorageBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.TransferSrcBit);
-        _vkImage.TransitionLayoutImmediate(ImageLayout.General);
-        _context.UpdateDescriptorSetImage(ref _descriptorSet, _vkImage.GetImageInfo(), DescriptorType.StorageImage, 0);
-        
-        _accumulationTexture?.Dispose();
-        _accumulationTexture = new VkImage(_context, _viewportWidth, _viewportHeight, Format.B8G8R8A8Unorm,ImageUsageFlags.StorageBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.TransferSrcBit);
-        _accumulationTexture.TransitionLayoutImmediate(ImageLayout.General);
-        _context.UpdateDescriptorSetImage(ref _descriptorSet, _accumulationTexture.GetImageInfo(), DescriptorType.StorageImage, 2);
-        _frameIndex = 1;
-        
+        using var buffer = _image.Lock();
+        _renderer.CopyDataTo(buffer.Address);
+    }
+
+    private void Reset()
+    {
+        _renderer.Reset();
         //save old image
         var tmp = _image;
-        _image = new WriteableBitmap(new PixelSize((int) _vkImage.Width, (int) _vkImage.Height), new Vector(96, 96), PixelFormat.Bgra8888);
+        _image = new WriteableBitmap(new PixelSize((int) _viewportWidth, (int) _viewportHeight), new Vector(96, 96), PixelFormat.Bgra8888);
         OnPropertyChanged(nameof(Image));
         //dispose old
         tmp?.Dispose();
-        
-        _vkBuffer?.Dispose();
-        _vkBuffer = new VkBuffer(_context, _vkImage.Width * _vkImage.Height * 4, BufferUsageFlags.TransferDstBit,
-                                 MemoryPropertyFlags.HostCachedBit | MemoryPropertyFlags.HostCoherentBit |
-                                 MemoryPropertyFlags.HostVisibleBit);
-        _vkBuffer.MapMemory(ref _mappedData);
+    }
+    
+    public void Dispose()
+    {
+        _renderer.Dispose();
+        _image.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

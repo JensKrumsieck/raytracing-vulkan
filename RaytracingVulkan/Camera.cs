@@ -1,7 +1,6 @@
-﻿using System;
-using System.Numerics;
+﻿using System.Numerics;
 
-namespace RaytracingVulkan.UI;
+namespace RaytracingVulkan;
 
 public class Camera
 {
