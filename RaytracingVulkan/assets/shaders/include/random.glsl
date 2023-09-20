@@ -24,5 +24,12 @@ vec3 hash3(float min, float max) {
 }
 
 vec3 inUnitSphere(){
-    return normalize(hash3(-1, 1));
+    while(true) {
+        vec3 p = hash3(-1, 1);
+        if(dot(p,p) < 1) return p;
+    }
+}
+
+vec3 randomUnitVector() {
+    return normalize(inUnitSphere());
 }
