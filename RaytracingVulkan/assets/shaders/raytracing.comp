@@ -128,7 +128,7 @@ void main()
 
     //anti aliasing
     uint samplesPerPixel = 10;
-    float influence = 0.005;
+    float influence = 0.0025;
     vec3 frameColor = vec3(0);    
     for(int i = 0; i < samplesPerPixel; i++) {
         vec3 dir = GetRayDirection(uv) + influence * hash3();
