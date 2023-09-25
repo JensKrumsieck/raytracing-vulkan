@@ -11,8 +11,18 @@ public abstract unsafe class Allocation : IDisposable
     protected DeviceMemory Memory;
     protected Allocation(VkContext vkContext) => VkContext = vkContext;
 
-    public Result MapMemory(ref void* pData) => Vk.MapMemory(Device, Memory, 0, Vk.WholeSize, 0, ref pData);
-    public void UnmapMemory() => Vk.UnmapMemory(Device, Memory);
+    protected bool HostMapped;
+    
+    public Result MapMemory(ref void* pData)
+    {
+        HostMapped = true;
+        return Vk.MapMemory(Device, Memory, 0, Vk.WholeSize, 0, ref pData);
+    }
+    public void UnmapMemory()
+    {
+        HostMapped = false;
+        Vk.UnmapMemory(Device, Memory);
+    }
 
     public abstract void Dispose();
 }

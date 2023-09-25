@@ -1,4 +1,6 @@
-﻿using Silk.NET.Vulkan;
+﻿using System.Numerics;
+using RaytracingVulkan.Primitives;
+using Silk.NET.Vulkan;
 
 namespace RaytracingVulkan;
 
@@ -19,7 +21,9 @@ public sealed unsafe class Renderer : IDisposable
     private VkImage? _vkImage;
     private VkImage? _accumulationTexture;
     private VkBuffer? _vkBuffer;
+    
     private readonly VkBuffer _sceneParameterBuffer;
+    private readonly VkBuffer _triangleBuffer;
     
     //pointers
     private void* _mappedData;
@@ -29,18 +33,27 @@ public sealed unsafe class Renderer : IDisposable
     private uint _viewportWidth;
     private uint _viewportHeight;
     private uint _frameIndex = 1;
+    
+    //mesh data
+    private Triangle[] _triangles;
 
     public bool IsReady;
+
+    private const int MaxTriangles = 100;
 
     public Renderer(VkContext context)
     {
         _context = context;
         
+        //init with cube for now
+        _triangles = Cube();
+        
         //pipeline creation
         var poolSizes = new DescriptorPoolSize[]
         {
             new() {Type = DescriptorType.StorageImage, DescriptorCount = 1000},
-            new() {Type = DescriptorType.UniformBuffer, DescriptorCount = 1000}
+            new() {Type = DescriptorType.UniformBuffer, DescriptorCount = 1000},
+            new() {Type = DescriptorType.StorageBuffer, DescriptorCount = 1000}
         };
         
         _descriptorPool = _context.CreateDescriptorPool(poolSizes);
@@ -51,16 +64,11 @@ public sealed unsafe class Renderer : IDisposable
             DescriptorType = DescriptorType.StorageImage,
             StageFlags = ShaderStageFlags.ComputeBit
         };
-        var binding1 = new DescriptorSetLayoutBinding
-        {
-            Binding = 1,
-            DescriptorCount = 1,
-            DescriptorType = DescriptorType.UniformBuffer,
-            StageFlags = ShaderStageFlags.ComputeBit
-        };
+        var binding1 = binding0 with {Binding = 1, DescriptorType = DescriptorType.UniformBuffer};
         var binding2 = binding0 with {Binding = 2};
+        var binding3 = binding0 with {Binding = 3, DescriptorType = DescriptorType.StorageBuffer};
         
-        _setLayout = _context.CreateDescriptorSetLayout(new[] {binding0, binding1, binding2});
+        _setLayout = _context.CreateDescriptorSetLayout(new[] {binding0, binding1, binding2, binding3});
         _descriptorSet = _context.AllocateDescriptorSet(_descriptorPool, _setLayout);
 
         var shaderModule = _context.LoadShaderModule("./assets/shaders/raytracing.comp.spv");
@@ -68,8 +76,15 @@ public sealed unsafe class Renderer : IDisposable
         _pipeline = _context.CreateComputePipeline(_pipelineLayout, shaderModule);
         _sceneParameterBuffer = new VkBuffer(_context, (uint) sizeof(SceneParameters), BufferUsageFlags.UniformBufferBit, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
         _sceneParameterBuffer.MapMemory(ref _mappedSceneParameterData);
-        
         _context.UpdateDescriptorSetBuffer(ref _descriptorSet, _sceneParameterBuffer.GetBufferInfo(), DescriptorType.UniformBuffer, 1);
+
+        _triangleBuffer = new VkBuffer(_context, (uint) (sizeof(Triangle) * _triangles.Length), BufferUsageFlags.StorageBufferBit, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.DeviceLocalBit);
+        var pData = IntPtr.Zero.ToPointer();
+        _triangleBuffer.MapMemory(ref pData);
+        fixed (void* pTriangles = _triangles)
+            System.Buffer.MemoryCopy(pTriangles, pData, _triangleBuffer.Size, _triangleBuffer.Size);
+        _triangleBuffer.UnmapMemory();
+        _context.UpdateDescriptorSetBuffer(ref _descriptorSet, _triangleBuffer.GetBufferInfo(), DescriptorType.StorageBuffer, 3);
         
         //we don't need it anymore
         _context.DestroyShaderModule(shaderModule);
@@ -149,6 +164,7 @@ public sealed unsafe class Renderer : IDisposable
         IsReady = false;
         _context.WaitIdle();
         _sceneParameterBuffer.Dispose();
+        _triangleBuffer.Dispose();
         _vkBuffer?.Dispose();
         _vkImage?.Dispose();
         
@@ -156,5 +172,31 @@ public sealed unsafe class Renderer : IDisposable
         _context.DestroyDescriptorSetLayout(_setLayout);
         _context.DestroyPipelineLayout(_pipelineLayout);
         _context.DestroyPipeline(_pipeline);
+    }
+
+    private static Triangle[] Cube()
+    {
+        var triangles = new Triangle[12];
+        var v0 = new Vector3(1.0f, -1.0f, -1.0f);
+        var v1 = new Vector3(1.0f, -1.0f, 1.0f);
+        var v2 = new Vector3(-1.0f, -1.0f, 1.0f);
+        var v3 = new Vector3(-1.0f, -1.0f, -1.0f);
+        var v4 = new Vector3(1.0f, 1.0f, -1.0f);
+        var v5 = new Vector3(1.0f, 1.0f, 1.0f);
+        var v6 = new Vector3(-1.0f, 1.0f, 1.0f);
+        var v7 = new Vector3(-1.0f, 1.0f, -1.0f);
+        triangles[0] = new Triangle(v1, v2, v3);
+        triangles[1] = new Triangle(v7, v6, v5);
+        triangles[2] = new Triangle(v0, v4, v5);
+        triangles[3] = new Triangle(v1, v5, v6);
+        triangles[4] = new Triangle(v6, v7, v3);
+        triangles[5] = new Triangle(v0, v3, v7);
+        triangles[6] = new Triangle(v0, v1, v3);
+        triangles[7] = new Triangle(v4, v7, v5);
+        triangles[8] = new Triangle(v1, v0, v5);
+        triangles[9] = new Triangle(v2, v1, v6);
+        triangles[10] = new Triangle(v2, v6, v3);
+        triangles[11] = new Triangle(v4, v0, v7);
+        return triangles;
     }
 }

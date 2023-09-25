@@ -16,6 +16,21 @@ layout(binding = 1, std140) uniform SceneData{
 } sceneData;
 layout(binding = 2, rgba32f) uniform image2D accumulationTexture;
 
+//discard w values (padding)
+struct triangle {
+    vec4 v0;
+    vec4 v1;
+    vec4 v2;
+    vec4 n0;
+    vec4 n1;
+    vec4 n2;
+    bool precalculatedNormals;
+};
+
+layout(binding = 3, std140) readonly buffer Triangles{
+    triangle triangles[];
+};
+
 struct ray {
     vec3 origin;
     vec3 direction;
@@ -26,16 +41,6 @@ struct sphere {
     float radius;
 };
 
-struct triangle {
-    vec3 v0;
-    vec3 v1;
-    vec3 v2;
-    vec3 n0;
-    vec3 n1;
-    vec3 n2;
-    bool precalculatedNormals;
-};
-
 struct payload {
     vec3 hitPoint;
     vec3 normal;
@@ -43,15 +48,15 @@ struct payload {
 };
 
 bool hitTriangle(triangle tri, ray ray, inout payload payload) {
-    vec3 v0v1 = tri.v1 - tri.v0;
-    vec3 v0v2 = tri.v2 - tri.v0;
+    vec3 v0v1 = tri.v1.xyz - tri.v0.xyz;
+    vec3 v0v2 = tri.v2.xyz - tri.v0.xyz;
     vec3 pVec = cross(ray.direction, v0v2);
     float det = dot(v0v1, pVec);
     
     if(abs(det) < epsilon) return false;
     
     float invDet = 1 / det;
-    vec3 tVec = ray.origin - tri.v0;
+    vec3 tVec = ray.origin - tri.v0.xyz;
     float u = dot(tVec, pVec) * invDet;
     vec3 qVec = cross(tVec, v0v1);
     float v = dot(ray.direction, qVec) * invDet;
@@ -67,7 +72,7 @@ bool hitTriangle(triangle tri, ray ray, inout payload payload) {
     if (!tri.precalculatedNormals)
         payload.normal = normalize(cross(v0v2, v0v1));
     else
-        payload.normal = tri.n1 * u + tri.n2 * v + tri.n0 * (1 - u - v);
+        payload.normal = tri.n1.xyz * u + tri.n2.xyz * v + tri.n0.xyz * (1 - u - v);
     
     if(det < 0) 
         payload.normal *= -1;
@@ -116,28 +121,6 @@ vec3 PerPixel(ray ray)
     sphere spheres[2];
     spheres[0] = sphere(vec3(0,0, -1), -0.5);
     spheres[1] = sphere(vec3(0,-100.5, -1), 100);
-    
-    triangle triangles[12];
-    vec3 v0 = vec3(1, -1, -1);
-    vec3 v1 = vec3(1, -1, 1);
-    vec3 v2 = vec3(-1, -1, 1);
-    vec3 v3 = vec3(-1, -1, -1);
-    vec3 v4 = vec3(1, 1, -1);
-    vec3 v5 = vec3(1, 1, 1);
-    vec3 v6 = vec3(-1, 1, 1);
-    vec3 v7 = vec3(-1, 1, -1);
-    triangles[0] = triangle(v1, v2, v3, vec3(0), vec3(0), vec3(0), false);
-    triangles[1] = triangle(v7, v6, v5, vec3(0), vec3(0), vec3(0), false);
-    triangles[2] = triangle(v0, v4, v5, vec3(0), vec3(0), vec3(0), false);
-    triangles[3] = triangle(v1, v5, v6, vec3(0), vec3(0), vec3(0), false);
-    triangles[4] = triangle(v6, v7, v3, vec3(0), vec3(0), vec3(0), false);
-    triangles[5] = triangle(v0, v3, v7, vec3(0), vec3(0), vec3(0), false);
-    triangles[6] = triangle(v0, v1, v3, vec3(0), vec3(0), vec3(0), false);
-    triangles[7] = triangle(v4, v7, v5, vec3(0), vec3(0), vec3(0), false);
-    triangles[8] = triangle(v1, v0, v5, vec3(0), vec3(0), vec3(0), false);
-    triangles[9] = triangle(v2, v1, v6, vec3(0), vec3(0), vec3(0), false);
-    triangles[10] = triangle(v2, v6, v3, vec3(0), vec3(0), vec3(0), false);
-    triangles[11] = triangle(v4, v0, v7, vec3(0), vec3(0), vec3(0), false);
     
     uint maxBounces = 10;
     vec3 finalColor = vec3(0);

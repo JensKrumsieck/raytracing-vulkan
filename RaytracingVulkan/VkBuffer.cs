@@ -17,6 +17,13 @@ public sealed unsafe class VkBuffer : Allocation
         _bufferUsageFlags = usageFlags;
         _memoryPropertyFlags = memoryFlags;
 
+        context.Vk.GetPhysicalDeviceProperties(context.PhysicalDevice, out var props);
+
+        if (usageFlags == BufferUsageFlags.StorageBufferBit)
+            size = (uint) GetAlignment(size, props.Limits.MinStorageBufferOffsetAlignment);
+        else if (usageFlags == BufferUsageFlags.UniformBufferBit)
+            size = (uint) GetAlignment(size, props.Limits.MinUniformBufferOffsetAlignment);
+        
         //create buffer
         var bufferInfo = new BufferCreateInfo
         {
@@ -52,8 +59,14 @@ public sealed unsafe class VkBuffer : Allocation
     
     public override void Dispose()
     {
-        UnmapMemory();
+        if(HostMapped) UnmapMemory();
         Vk.FreeMemory(Device, Memory, null);
         Vk.DestroyBuffer(Device, Buffer, null);
+    }
+    
+    public static ulong GetAlignment(ulong bufferSize, ulong minOffsetAlignment)
+    {
+        if (minOffsetAlignment > 0) return ((bufferSize - 1) / minOffsetAlignment + 1) * minOffsetAlignment;
+        return bufferSize;
     }
 }

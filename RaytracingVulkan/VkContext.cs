@@ -9,6 +9,7 @@ public sealed unsafe partial class VkContext : IDisposable
 {
     public Vk Vk => _vk;
     public Device Device => _device;
+    public PhysicalDevice PhysicalDevice => _physicalDevice;
     
     private readonly Vk _vk = Vk.GetApi();
     
