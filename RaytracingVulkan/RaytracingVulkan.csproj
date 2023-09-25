@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net7.0</TargetFramework>
+        <LangVersion>preview</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -19,7 +20,7 @@
         <None Update="$(ProjectDir)\assets\**\*">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
-        <ShaderDir Include="$(ProjectDir)\assets\shaders\**\*" />
+        <ShaderDir Include="$(ProjectDir)\assets\shaders\*" />
         <CompiledShaders Include="$(ProjectDir)\assets\shaders\**\*.spv" />
     </ItemGroup>
     
