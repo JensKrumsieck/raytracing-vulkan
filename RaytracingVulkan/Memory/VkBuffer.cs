@@ -1,7 +1,7 @@
 ﻿using Silk.NET.Vulkan;
 using Buffer = Silk.NET.Vulkan.Buffer;
 
-namespace RaytracingVulkan;
+namespace RaytracingVulkan.Memory;
 
 public sealed unsafe class VkBuffer : Allocation
 {
@@ -17,6 +17,13 @@ public sealed unsafe class VkBuffer : Allocation
         _bufferUsageFlags = usageFlags;
         _memoryPropertyFlags = memoryFlags;
 
+        context.Vk.GetPhysicalDeviceProperties(context.PhysicalDevice, out var props);
+
+        if (usageFlags == BufferUsageFlags.StorageBufferBit)
+            size = (uint) GetAlignment(size, props.Limits.MinStorageBufferOffsetAlignment);
+        else if (usageFlags == BufferUsageFlags.UniformBufferBit)
+            size = (uint) GetAlignment(size, props.Limits.MinUniformBufferOffsetAlignment);
+        
         //create buffer
         var bufferInfo = new BufferCreateInfo
         {
@@ -43,6 +50,14 @@ public sealed unsafe class VkBuffer : Allocation
         VkContext.EndSingleTimeCommands(cmd);
     }
 
+    public void CopyToBuffer(VkBuffer vkBuffer)
+    {
+        var cmd = VkContext.BeginSingleTimeCommands();
+        var copyRegion = new BufferCopy {Size = Size, SrcOffset = 0, DstOffset = 0};
+        Vk.CmdCopyBuffer(cmd, Buffer, vkBuffer.Buffer, 1, &copyRegion);
+        VkContext.EndSingleTimeCommands(cmd);
+    }
+
     public DescriptorBufferInfo GetBufferInfo() => new()
     {
         Buffer = Buffer,
@@ -52,8 +67,14 @@ public sealed unsafe class VkBuffer : Allocation
     
     public override void Dispose()
     {
-        UnmapMemory();
+        if(HostMapped) UnmapMemory();
         Vk.FreeMemory(Device, Memory, null);
         Vk.DestroyBuffer(Device, Buffer, null);
+    }
+
+    private static ulong GetAlignment(ulong bufferSize, ulong minOffsetAlignment)
+    {
+        if (minOffsetAlignment > 0) return ((bufferSize - 1) / minOffsetAlignment + 1) * minOffsetAlignment;
+        return bufferSize;
     }
 }

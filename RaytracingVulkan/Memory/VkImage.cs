@@ -2,7 +2,7 @@
 using SkiaSharp;
 using Buffer = Silk.NET.Vulkan.Buffer;
 
-namespace RaytracingVulkan;
+namespace RaytracingVulkan.Memory;
 
 public sealed unsafe class VkImage : Allocation
 {

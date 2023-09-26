@@ -9,6 +9,7 @@ public sealed unsafe partial class VkContext : IDisposable
 {
     public Vk Vk => _vk;
     public Device Device => _device;
+    public PhysicalDevice PhysicalDevice => _physicalDevice;
     
     private readonly Vk _vk = Vk.GetApi();
     
@@ -96,8 +97,7 @@ public sealed unsafe partial class VkContext : IDisposable
             _vk.GetPhysicalDeviceQueueFamilyProperties(_physicalDevice, ref queueFamilyCount, pQueueFamilies);
         for (var i = 0u; i < queueFamilies.Length; i++)
         {
-            if (queueFamilies[i].QueueFlags.HasFlag(QueueFlags.GraphicsBit) ||
-                queueFamilies[i].QueueFlags.HasFlag(QueueFlags.ComputeBit))
+            if (queueFamilies[i].QueueFlags.HasFlag(QueueFlags.ComputeBit))
             {
                 _mainQueueIndex = i;
                 break;
@@ -168,17 +168,19 @@ public sealed unsafe partial class VkContext : IDisposable
         return commandBuffer;
     }
 
+    public void FreeCommandBuffer(CommandBuffer cmd) => _vk.FreeCommandBuffers(Device, _commandPool, 1, cmd);
+
     public void BeginCommandBuffer(CommandBuffer commandBuffer)
     {
         var beginInfo = new CommandBufferBeginInfo
         {
             SType = StructureType.CommandBufferBeginInfo,
-            Flags = CommandBufferUsageFlags.None
+            Flags = CommandBufferUsageFlags.OneTimeSubmitBit
         };
         _vk.BeginCommandBuffer(commandBuffer, beginInfo);
     }
 
-    public void EndCommandBuffer(CommandBuffer cmd)
+    public void EndCommandBuffer(CommandBuffer cmd, Fence fence = default)
     {
         _vk.EndCommandBuffer(cmd);
         var submitInfo = new SubmitInfo
@@ -187,7 +189,7 @@ public sealed unsafe partial class VkContext : IDisposable
             CommandBufferCount = 1,
             PCommandBuffers = &cmd
         };
-        SubmitMainQueue(submitInfo, default);
+        SubmitMainQueue(submitInfo, fence);
     }
     
     public CommandBuffer BeginSingleTimeCommands()
@@ -201,7 +203,7 @@ public sealed unsafe partial class VkContext : IDisposable
     {
         EndCommandBuffer(cmd);
         WaitForQueue();
-        _vk.FreeCommandBuffers(_device, _commandPool, 1, cmd);
+        FreeCommandBuffer(cmd);
     }
 
     private uint FindMemoryTypeIndex(uint filter, MemoryPropertyFlags flags)
@@ -228,6 +230,21 @@ public sealed unsafe partial class VkContext : IDisposable
         _vk.AllocateMemory(_device, allocInfo, null, out var deviceMemory);
         return deviceMemory;
     }
+
+    public Fence CreateFence(FenceCreateFlags flags = FenceCreateFlags.None)
+    {
+        var createInfo = new FenceCreateInfo
+        {
+            SType = StructureType.FenceCreateInfo,
+            Flags = flags
+        };
+        _vk.CreateFence(Device, createInfo, null, out var fence);
+        return fence;
+    }
+
+    public void DestroyFence(Fence fence) => _vk.DestroyFence(Device, fence, null);
+    public void WaitForFence(Fence fence) => _vk.WaitForFences(Device, 1, fence, true, ulong.MaxValue);
+    public void ResetFence(Fence fence) => _vk.ResetFences(Device, 1, fence);
     
     public void Dispose()
     {
