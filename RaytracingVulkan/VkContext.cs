@@ -231,11 +231,12 @@ public sealed unsafe partial class VkContext : IDisposable
         return deviceMemory;
     }
 
-    public Fence CreateFence()
+    public Fence CreateFence(FenceCreateFlags flags = FenceCreateFlags.None)
     {
         var createInfo = new FenceCreateInfo
         {
-            SType = StructureType.FenceCreateInfo
+            SType = StructureType.FenceCreateInfo,
+            Flags = flags
         };
         _vk.CreateFence(Device, createInfo, null, out var fence);
         return fence;

@@ -6,7 +6,6 @@ using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Microsoft.Toolkit.Mvvm.ComponentModel;
-using Silk.NET.Vulkan;
 using Vector = Avalonia.Vector;
 
 namespace RaytracingVulkan.UI.ViewModels;
@@ -44,11 +43,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         if (!_renderer.IsReady) return;
         _frameTimeStopWatch.Start();
-        HandleInput(FrameTime / 1000f);
-        _renderer.Render(ActiveCamera);
+        
+        _renderer.PrepareImage();
         _ioStopWatch.Start();
         CopyImageToHost();
         _ioStopWatch.Stop();
+        
+        HandleInput(FrameTime / 1000f);
+        _renderer.Render(ActiveCamera);
         IoTime = (float) _ioStopWatch.Elapsed.TotalMilliseconds;
         _ioStopWatch.Reset();
         

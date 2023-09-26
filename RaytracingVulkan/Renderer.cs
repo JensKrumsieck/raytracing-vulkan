@@ -9,8 +9,12 @@ public sealed unsafe class Renderer : IDisposable
 {
     //vulkan
     private readonly VkContext _context;
-    private readonly CommandBuffer _cmd;
+    private readonly CommandBuffer _computeCmd;
+    private readonly Fence _computeFence;
 
+    private readonly CommandBuffer _copyCmd;
+    private readonly Fence _copyFence;
+    
     //pipeline
     private readonly DescriptorPool _descriptorPool;
     private DescriptorSet _descriptorSet;
@@ -26,9 +30,6 @@ public sealed unsafe class Renderer : IDisposable
     private readonly VkBuffer _sceneParameterBuffer;
     private readonly VkBuffer _triangleBuffer;
     private readonly VkBuffer _sphereBuffer;
-    
-    //sync objects
-    private readonly Fence _fence;
     
     //pointers
     private void* _mappedData;
@@ -117,12 +118,14 @@ public sealed unsafe class Renderer : IDisposable
         stagingBuffer.Dispose();
         
         _context.UpdateDescriptorSetBuffer(ref _descriptorSet, _sphereBuffer.GetBufferInfo(), DescriptorType.StorageBuffer, 4);
-
-        _fence = _context.CreateFence();
         
         //we don't need it anymore
         _context.DestroyShaderModule(shaderModule);
-        _cmd = _context.AllocateCommandBuffer();
+        
+        _computeCmd = _context.AllocateCommandBuffer();
+        _computeFence = _context.CreateFence(FenceCreateFlags.SignaledBit);
+        _copyCmd = _context.AllocateCommandBuffer();
+        _copyFence = _context.CreateFence();
     }
 
     public void Render(Camera camera)
@@ -139,23 +142,34 @@ public sealed unsafe class Renderer : IDisposable
     }
 
     private void RenderImage()
-    {
-        _context.BeginCommandBuffer(_cmd);
+    {  
+        _context.WaitForFence(_computeFence);
+        _context.ResetFence(_computeFence);
+        _context.BeginCommandBuffer(_computeCmd);
         
         //execute compute shader
-        _context.BindComputePipeline(_cmd, _pipeline);
-        _context.BindComputeDescriptorSet(_cmd, _descriptorSet, _pipelineLayout);
-        _context.Dispatch(_cmd, _vkImage!.Width/16, _vkImage.Height/16, 1);
+        _context.BindComputePipeline(_computeCmd, _pipeline);
+        _context.BindComputeDescriptorSet(_computeCmd, _descriptorSet, _pipelineLayout);
+        _context.Dispatch(_computeCmd, _vkImage!.Width/16, _vkImage.Height/16, 1);
         
-        //copy image to buffer
-        _vkImage.TransitionLayout(_cmd, ImageLayout.TransferSrcOptimal);
-        _vkImage.CopyToBuffer(_cmd, _vkBuffer!.Buffer);
-        _vkImage!.TransitionLayout(_cmd, ImageLayout.General);
-        
-        _context.EndCommandBuffer(_cmd, _fence);
-        _context.WaitForFence(_fence);
-        _context.ResetFence(_fence);
+        _context.EndCommandBuffer(_computeCmd, _computeFence);
     }
+
+    public void PrepareImage()
+    {
+        if (_frameIndex == 1) return;
+        _context.BeginCommandBuffer(_copyCmd);
+        //copy image to buffer
+        _vkImage!.TransitionLayout(_copyCmd, ImageLayout.TransferSrcOptimal);
+        _vkImage.CopyToBuffer(_copyCmd, _vkBuffer!.Buffer);
+        _vkImage!.TransitionLayout(_copyCmd, ImageLayout.General);
+        
+        _context.EndCommandBuffer(_copyCmd, _copyFence);
+        
+        _context.WaitForFence(_copyFence);
+        _context.ResetFence(_copyFence);
+    }
+    
     private void UpdateSceneParameters(Camera camera)
     {
         //update ubo
@@ -165,13 +179,15 @@ public sealed unsafe class Renderer : IDisposable
             InverseCameraProjection = camera.InverseProjection,
             CameraView = camera.View,
             InverseCameraView = camera.InverseView,
-            FrameIndex = _frameIndex
+            FrameIndex = _frameIndex,
+            Time = (uint) DateTime.Now.Ticks
         };
         System.Buffer.MemoryCopy(&parameters, _mappedSceneParameterData, sizeof(SceneParameters), sizeof(SceneParameters));
     }
 
     public void CopyDataTo(IntPtr address)
-    {
+    { 
+        if (_frameIndex == 1) return;
         var size = _viewportWidth * _viewportHeight * 4;
         System.Buffer.MemoryCopy(_mappedData, address.ToPointer(), size, size);
     }
@@ -179,6 +195,8 @@ public sealed unsafe class Renderer : IDisposable
     public void Reset()
     {
         IsReady = false;
+        _context.WaitForQueue();
+        
         _vkImage?.Dispose();
         _vkImage = new VkImage(_context, _viewportWidth, _viewportHeight, Format.B8G8R8A8Unorm,ImageUsageFlags.StorageBit | ImageUsageFlags.TransferSrcBit);
         _vkImage.TransitionLayoutImmediate(ImageLayout.General);
@@ -189,28 +207,32 @@ public sealed unsafe class Renderer : IDisposable
         _accumulationTexture.TransitionLayoutImmediate(ImageLayout.General);
         _context.UpdateDescriptorSetImage(ref _descriptorSet, _accumulationTexture.GetImageInfo(), DescriptorType.StorageImage, 2);
         _frameIndex = 1;
-        
+
         _vkBuffer?.Dispose();
         _vkBuffer = new VkBuffer(_context, _vkImage.Width * _vkImage.Height * 4, BufferUsageFlags.TransferDstBit,
-                                 MemoryPropertyFlags.HostCachedBit | MemoryPropertyFlags.HostCoherentBit |
-                                 MemoryPropertyFlags.HostVisibleBit);
-        _vkBuffer.MapMemory(ref _mappedData);
+                MemoryPropertyFlags.HostCachedBit | MemoryPropertyFlags.HostCoherentBit |
+                MemoryPropertyFlags.HostVisibleBit);
+        _vkBuffer!.MapMemory(ref _mappedData);
         IsReady = true;
     }
-    
+
     public void Dispose()
     {
         IsReady = false;
         _context.WaitIdle();
-       
-        _context.FreeCommandBuffer(_cmd);
+
         _sceneParameterBuffer.Dispose();
         _triangleBuffer.Dispose();
         _sphereBuffer.Dispose();
         _vkBuffer?.Dispose();
         _vkImage?.Dispose();
 
-        _context.DestroyFence(_fence);
+        _context.FreeCommandBuffer(_computeCmd);
+        _context.DestroyFence(_computeFence);
+        
+        _context.FreeCommandBuffer(_copyCmd);
+        _context.DestroyFence(_copyFence);
+        
         _context.DestroyDescriptorPool(_descriptorPool);
         _context.DestroyDescriptorSetLayout(_setLayout);
         _context.DestroyPipelineLayout(_pipelineLayout);
