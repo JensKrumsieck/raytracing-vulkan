@@ -10,6 +10,7 @@ ___________
 ### [Part 1](https://jenskrumsieck.medium.com/raytracing-in-vulkan-using-c-part-1-997cb284f7e8)
 ### [Part 2](https://jenskrumsieck.medium.com/raytracing-in-vulkan-using-c-part-2-3a8e21e27139)
 ### [Part 3](https://medium.com/@jenskrumsieck/raytracing-in-vulkan-using-c-part-3-50118e4ec233)
+### [Part 4](https://jenskrumsieck.medium.com/raytracing-in-vulkan-using-c-part-4-1d46b8aa2088)
 
 ____________
 Feel free to contribute or leave suggestions.
