@@ -26,6 +26,9 @@ public sealed unsafe class Renderer : IDisposable
     private readonly VkBuffer _triangleBuffer;
     private readonly VkBuffer _sphereBuffer;
     
+    //sync objects
+    private readonly Fence _fence;
+    
     //pointers
     private void* _mappedData;
     private readonly void* _mappedSceneParameterData;
@@ -95,6 +98,7 @@ public sealed unsafe class Renderer : IDisposable
         stagingBuffer.UnmapMemory();
         
         stagingBuffer.CopyToBuffer(_triangleBuffer);
+        stagingBuffer.Dispose();
         
         _context.UpdateDescriptorSetBuffer(ref _descriptorSet, _triangleBuffer.GetBufferInfo(), DescriptorType.StorageBuffer, 3);
         
@@ -109,8 +113,11 @@ public sealed unsafe class Renderer : IDisposable
         stagingBuffer.UnmapMemory();
         
         stagingBuffer.CopyToBuffer(_sphereBuffer);
+        stagingBuffer.Dispose();
         
         _context.UpdateDescriptorSetBuffer(ref _descriptorSet, _sphereBuffer.GetBufferInfo(), DescriptorType.StorageBuffer, 4);
+
+        _fence = _context.CreateFence();
         
         //we don't need it anymore
         _context.DestroyShaderModule(shaderModule);
@@ -140,8 +147,9 @@ public sealed unsafe class Renderer : IDisposable
         _context.Dispatch(_cmd, _vkImage.Width/16, _vkImage.Height/16, 1);
         _vkImage.TransitionLayout(_cmd, ImageLayout.TransferSrcOptimal);
         _vkImage.CopyToBuffer(_cmd, _vkBuffer!.Buffer);
-        _context.EndCommandBuffer(_cmd);
-        _context.WaitForQueue();
+        _context.EndCommandBuffer(_cmd, _fence);
+        _context.WaitForFence(_fence);
+        _context.ResetFence(_fence);
     }
     private void UpdateSceneParameters(Camera camera)
     {
@@ -189,12 +197,15 @@ public sealed unsafe class Renderer : IDisposable
     {
         IsReady = false;
         _context.WaitIdle();
+       
+        _context.FreeCommandBuffer(_cmd);
         _sceneParameterBuffer.Dispose();
         _triangleBuffer.Dispose();
         _sphereBuffer.Dispose();
         _vkBuffer?.Dispose();
         _vkImage?.Dispose();
-        
+
+        _context.DestroyFence(_fence);
         _context.DestroyDescriptorPool(_descriptorPool);
         _context.DestroyDescriptorSetLayout(_setLayout);
         _context.DestroyPipelineLayout(_pipelineLayout);
