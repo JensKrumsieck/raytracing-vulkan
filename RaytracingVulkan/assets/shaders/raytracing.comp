@@ -98,7 +98,7 @@ bool hitSphere(sphere sphere, ray ray, float tmin, float tmax, inout payload pay
     float sqD = sqrt(discriminant);
     //calculate hitpoint and normal
     float t = (-b - sqD) / (2.0 * a);
-    if(t < tmin || tmax < t)
+    if (t < tmin || tmax < t)
     {
         t = (-b + sqD) / (2.0 * a);
         if(t < tmin || tmax < t) return false;
