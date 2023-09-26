@@ -97,8 +97,7 @@ public sealed unsafe partial class VkContext : IDisposable
             _vk.GetPhysicalDeviceQueueFamilyProperties(_physicalDevice, ref queueFamilyCount, pQueueFamilies);
         for (var i = 0u; i < queueFamilies.Length; i++)
         {
-            if (queueFamilies[i].QueueFlags.HasFlag(QueueFlags.GraphicsBit) ||
-                queueFamilies[i].QueueFlags.HasFlag(QueueFlags.ComputeBit))
+            if (queueFamilies[i].QueueFlags.HasFlag(QueueFlags.ComputeBit))
             {
                 _mainQueueIndex = i;
                 break;
