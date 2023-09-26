@@ -179,9 +179,15 @@ public sealed unsafe partial class VkContext : IDisposable
         _vk.BeginCommandBuffer(commandBuffer, beginInfo);
     }
 
-    public void EndCommandBuffer(CommandBuffer cmd)
+    public void EndCommandBuffer(CommandBuffer cmd) => _vk.EndCommandBuffer(cmd);
+    public void EndAndSubmitCommandBuffer(CommandBuffer cmd)
     {
         _vk.EndCommandBuffer(cmd);
+        SubmitCommandBuffer(cmd);
+    }
+
+    public void SubmitCommandBuffer(CommandBuffer cmd)
+    { 
         var submitInfo = new SubmitInfo
         {
             SType = StructureType.SubmitInfo,
@@ -200,7 +206,7 @@ public sealed unsafe partial class VkContext : IDisposable
 
     public void EndSingleTimeCommands(CommandBuffer cmd)
     {
-        EndCommandBuffer(cmd);
+        EndAndSubmitCommandBuffer(cmd);
         WaitForQueue();
         _vk.FreeCommandBuffers(_device, _commandPool, 1, cmd);
     }

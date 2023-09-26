@@ -40,6 +40,7 @@ public sealed unsafe class Renderer : IDisposable
     private Sphere[] _spheres;
 
     public bool IsReady;
+    private bool _isRecorded;
 
     public Renderer(VkContext context)
     {
@@ -132,15 +133,19 @@ public sealed unsafe class Renderer : IDisposable
 
     private void RenderImage()
     {
-        //execute compute shader
-        _context.BeginCommandBuffer(_cmd);
-        _vkImage!.TransitionLayout(_cmd, ImageLayout.General);
-        _context.BindComputePipeline(_cmd, _pipeline);
-        _context.BindComputeDescriptorSet(_cmd, _descriptorSet, _pipelineLayout);
-        _context.Dispatch(_cmd, _vkImage.Width/16, _vkImage.Height/16, 1);
-        _vkImage.TransitionLayout(_cmd, ImageLayout.TransferSrcOptimal);
-        _vkImage.CopyToBuffer(_cmd, _vkBuffer!.Buffer);
-        _context.EndCommandBuffer(_cmd);
+        if (!_isRecorded)
+        {
+            _context.BeginCommandBuffer(_cmd);
+            _context.BindComputePipeline(_cmd, _pipeline);
+            _context.BindComputeDescriptorSet(_cmd, _descriptorSet, _pipelineLayout);
+            _context.Dispatch(_cmd, _vkImage!.Width / 16, _vkImage.Height / 16, 1);
+            _vkImage.TransitionLayout(_cmd, ImageLayout.TransferSrcOptimal);
+            _vkImage.CopyToBuffer(_cmd, _vkBuffer!.Buffer);
+            _vkImage!.TransitionLayout(_cmd, ImageLayout.General);
+            _context.EndCommandBuffer(_cmd);
+            _isRecorded = true;
+        }
+        _context.SubmitCommandBuffer(_cmd);
         _context.WaitForQueue();
     }
     private void UpdateSceneParameters(Camera camera)
@@ -166,6 +171,8 @@ public sealed unsafe class Renderer : IDisposable
     public void Reset()
     {
         IsReady = false;
+        _isRecorded = false;
+        
         _vkImage?.Dispose();
         _vkImage = new VkImage(_context, _viewportWidth, _viewportHeight, Format.B8G8R8A8Unorm,ImageUsageFlags.StorageBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.TransferSrcBit);
         _vkImage.TransitionLayoutImmediate(ImageLayout.General);
@@ -188,6 +195,8 @@ public sealed unsafe class Renderer : IDisposable
     public void Dispose()
     {
         IsReady = false;
+        _isRecorded = false;
+        
         _context.WaitIdle();
         _sceneParameterBuffer.Dispose();
         _triangleBuffer.Dispose();
