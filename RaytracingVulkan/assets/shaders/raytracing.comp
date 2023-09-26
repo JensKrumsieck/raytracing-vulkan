@@ -53,7 +53,7 @@ bool hitTriangle(triangle tri, ray ray, inout payload payload) {
     vec3 pVec = cross(ray.direction, v0v2);
     float det = dot(v0v1, pVec);
     
-    if(abs(det) < epsilon) return false;
+    if(det < epsilon) return false;
     
     float invDet = 1 / det;
     vec3 tVec = ray.origin - tri.v0.xyz;
@@ -118,9 +118,10 @@ vec3 GetRayDirection(vec2 coord)
 
 vec3 PerPixel(ray ray)
 {    
-    //sphere spheres[2];
-    //spheres[0] = sphere(vec3(0,0, -1), -0.5);
-    //spheres[1] = sphere(vec3(0,-100.5, -1), 100);
+    sphere spheres[3];
+    spheres[0] = sphere(vec3(-2,-.5, -1), -0.5);
+    spheres[1] = sphere(vec3(2,-.5, -1), -0.5);
+    spheres[2] = sphere(vec3(0,-101, -1), 100);
     
     uint maxBounces = 10;
     vec3 finalColor = vec3(0);
@@ -131,18 +132,18 @@ vec3 PerPixel(ray ray)
         payload payload;
         bool hit = false;
         float closestT = infinity;
-        //for(int i = 0; i < spheres.length(); i++)
-        //{
-        //    if (hitSphere(spheres[i], ray, localPayload))
-        //    {
-        //        hit = true;
-        //       if (localPayload.hitDistance < closestT)
-        //       {
-        //           closestT = localPayload.hitDistance;
-        //           payload = localPayload;
-        //       }
-        //   }
-        //}
+        for(int i = 0; i < spheres.length(); i++)
+        {
+            if (hitSphere(spheres[i], ray, localPayload))
+            {
+                hit = true;
+               if (localPayload.hitDistance < closestT)
+               {
+                   closestT = localPayload.hitDistance;
+                   payload = localPayload;
+               }
+           }
+        }
         for(int i = 0; i < triangles.length(); i++)
         {
             if (hitTriangle(triangles[i], ray, localPayload))
@@ -187,8 +188,8 @@ void main()
     vec3 origin = sceneData.invCamView[3].xyz;
 
     //anti aliasing
-    uint samplesPerPixel = 10;
-    float influence = 0.0025;
+    uint samplesPerPixel = 5;
+    float influence = 0.001;
     vec3 frameColor = vec3(0);    
     for(int i = 0; i < samplesPerPixel; i++) {
         vec3 dir = GetRayDirection(uv) + influence * hash3();

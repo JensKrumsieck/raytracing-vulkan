@@ -39,8 +39,6 @@ public sealed unsafe class Renderer : IDisposable
 
     public bool IsReady;
 
-    private const int MaxTriangles = 100;
-
     public Renderer(VkContext context)
     {
         _context = context;
