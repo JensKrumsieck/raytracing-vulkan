@@ -137,7 +137,7 @@ public sealed unsafe class Renderer : IDisposable
         _vkImage!.TransitionLayout(_cmd, ImageLayout.General);
         _context.BindComputePipeline(_cmd, _pipeline);
         _context.BindComputeDescriptorSet(_cmd, _descriptorSet, _pipelineLayout);
-        _context.Dispatch(_cmd, _vkImage.Width/32, _vkImage.Height/32, 1);
+        _context.Dispatch(_cmd, _vkImage.Width/16, _vkImage.Height/16, 1);
         _vkImage.TransitionLayout(_cmd, ImageLayout.TransferSrcOptimal);
         _vkImage.CopyToBuffer(_cmd, _vkBuffer!.Buffer);
         _context.EndCommandBuffer(_cmd);
