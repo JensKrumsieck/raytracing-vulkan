@@ -140,14 +140,18 @@ public sealed unsafe class Renderer : IDisposable
 
     private void RenderImage()
     {
-        //execute compute shader
         _context.BeginCommandBuffer(_cmd);
-        _vkImage!.TransitionLayout(_cmd, ImageLayout.General);
+        
+        //execute compute shader
         _context.BindComputePipeline(_cmd, _pipeline);
         _context.BindComputeDescriptorSet(_cmd, _descriptorSet, _pipelineLayout);
-        _context.Dispatch(_cmd, _vkImage.Width/16, _vkImage.Height/16, 1);
+        _context.Dispatch(_cmd, _vkImage!.Width/16, _vkImage.Height/16, 1);
+        
+        //copy image to buffer
         _vkImage.TransitionLayout(_cmd, ImageLayout.TransferSrcOptimal);
         _vkImage.CopyToBuffer(_cmd, _vkBuffer!.Buffer);
+        _vkImage!.TransitionLayout(_cmd, ImageLayout.General);
+        
         _context.EndCommandBuffer(_cmd, _fence);
         _context.WaitForFence(_fence);
         _context.ResetFence(_fence);
