@@ -34,7 +34,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public MainViewModel(InputHandler input)
     {
         _input = input;
-        _cameraViewModel = new CameraViewModel(new Camera(40, 0.1f, 1000f));
+        _cameraViewModel = new CameraViewModel(new Camera(40, 0.1f, 1000f){Position = new Vector3(0,0,5)});
+        _cameraViewModel.ActiveCamera.RecalculateView();
         //needed for initial binding
         _image = new WriteableBitmap(new PixelSize(1, 1), new Vector(96, 96), PixelFormat.Bgra8888);
         _renderer = new Renderer((Application.Current as App)!.VkContext);

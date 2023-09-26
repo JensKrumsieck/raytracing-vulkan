@@ -46,7 +46,7 @@ public sealed unsafe class Renderer : IDisposable
         _context = context;
         
         //init with cube for now
-        _triangles = Cube();
+        _triangles = MeshImporter.FromFile("./assets/models/suzanne.fbx")[0].ToTriangles();
         
         //pipeline creation
         var poolSizes = new DescriptorPoolSize[]
@@ -78,12 +78,18 @@ public sealed unsafe class Renderer : IDisposable
         _sceneParameterBuffer.MapMemory(ref _mappedSceneParameterData);
         _context.UpdateDescriptorSetBuffer(ref _descriptorSet, _sceneParameterBuffer.GetBufferInfo(), DescriptorType.UniformBuffer, 1);
 
-        _triangleBuffer = new VkBuffer(_context, (uint) (sizeof(Triangle) * _triangles.Length), BufferUsageFlags.StorageBufferBit, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.DeviceLocalBit);
+        _triangleBuffer = new VkBuffer(_context, (uint) (sizeof(Triangle) * _triangles.Length), BufferUsageFlags.StorageBufferBit | BufferUsageFlags.TransferDstBit, MemoryPropertyFlags.DeviceLocalBit);
+        
+        //use staging buffer
+        var stagingBuffer = new VkBuffer(_context, (uint) (sizeof(Triangle) * _triangles.Length), BufferUsageFlags.TransferSrcBit, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
         var pData = IntPtr.Zero.ToPointer();
-        _triangleBuffer.MapMemory(ref pData);
+        stagingBuffer.MapMemory(ref pData);
         fixed (void* pTriangles = _triangles)
-            System.Buffer.MemoryCopy(pTriangles, pData, _triangleBuffer.Size, _triangleBuffer.Size);
-        _triangleBuffer.UnmapMemory();
+            System.Buffer.MemoryCopy(pTriangles, pData, stagingBuffer.Size, stagingBuffer.Size);
+        stagingBuffer.UnmapMemory();
+        
+        stagingBuffer.CopyToBuffer(_triangleBuffer);
+        
         _context.UpdateDescriptorSetBuffer(ref _descriptorSet, _triangleBuffer.GetBufferInfo(), DescriptorType.StorageBuffer, 3);
         
         //we don't need it anymore

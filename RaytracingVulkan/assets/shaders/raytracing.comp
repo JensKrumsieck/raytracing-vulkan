@@ -118,9 +118,9 @@ vec3 GetRayDirection(vec2 coord)
 
 vec3 PerPixel(ray ray)
 {    
-    sphere spheres[2];
-    spheres[0] = sphere(vec3(0,0, -1), -0.5);
-    spheres[1] = sphere(vec3(0,-100.5, -1), 100);
+    //sphere spheres[2];
+    //spheres[0] = sphere(vec3(0,0, -1), -0.5);
+    //spheres[1] = sphere(vec3(0,-100.5, -1), 100);
     
     uint maxBounces = 10;
     vec3 finalColor = vec3(0);
@@ -131,18 +131,18 @@ vec3 PerPixel(ray ray)
         payload payload;
         bool hit = false;
         float closestT = infinity;
-        for(int i = 0; i < spheres.length(); i++)
-        {
-            if (hitSphere(spheres[i], ray, localPayload))
-            {
-                hit = true;
-                if (localPayload.hitDistance < closestT)
-                {
-                    closestT = localPayload.hitDistance;
-                    payload = localPayload;
-                }
-            }
-        }
+        //for(int i = 0; i < spheres.length(); i++)
+        //{
+        //    if (hitSphere(spheres[i], ray, localPayload))
+        //    {
+        //        hit = true;
+        //       if (localPayload.hitDistance < closestT)
+        //       {
+        //           closestT = localPayload.hitDistance;
+        //           payload = localPayload;
+        //       }
+        //   }
+        //}
         for(int i = 0; i < triangles.length(); i++)
         {
             if (hitTriangle(triangles[i], ray, localPayload))

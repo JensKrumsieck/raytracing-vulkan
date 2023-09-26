@@ -50,6 +50,14 @@ public sealed unsafe class VkBuffer : Allocation
         VkContext.EndSingleTimeCommands(cmd);
     }
 
+    public void CopyToBuffer(VkBuffer vkBuffer)
+    {
+        var cmd = VkContext.BeginSingleTimeCommands();
+        var copyRegion = new BufferCopy {Size = Size, SrcOffset = 0, DstOffset = 0};
+        Vk.CmdCopyBuffer(cmd, Buffer, vkBuffer.Buffer, 1, &copyRegion);
+        VkContext.EndSingleTimeCommands(cmd);
+    }
+
     public DescriptorBufferInfo GetBufferInfo() => new()
     {
         Buffer = Buffer,
@@ -63,8 +71,8 @@ public sealed unsafe class VkBuffer : Allocation
         Vk.FreeMemory(Device, Memory, null);
         Vk.DestroyBuffer(Device, Buffer, null);
     }
-    
-    public static ulong GetAlignment(ulong bufferSize, ulong minOffsetAlignment)
+
+    private static ulong GetAlignment(ulong bufferSize, ulong minOffsetAlignment)
     {
         if (minOffsetAlignment > 0) return ((bufferSize - 1) / minOffsetAlignment + 1) * minOffsetAlignment;
         return bufferSize;

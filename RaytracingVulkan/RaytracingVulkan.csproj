@@ -9,10 +9,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Silk.NET.Vulkan" Version="2.17.1" />
-      <PackageReference Include="Silk.NET.Vulkan.Extensions.EXT" Version="2.17.1" />
-      <PackageReference Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.17.1" />
-      <PackageReference Include="SkiaSharp" Version="2.88.6" />
+        <PackageReference Include="Silk.NET.Vulkan" Version="2.17.1" />
+        <PackageReference Include="Silk.NET.Assimp" Version="2.17.1" />
+        <PackageReference Include="Silk.NET.Vulkan.Extensions.EXT" Version="2.17.1" />
+        <PackageReference Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.17.1" />
+        <PackageReference Include="SkiaSharp" Version="2.88.6" />
     </ItemGroup>
 
     <!--Shader compilation-->
@@ -22,6 +23,9 @@
         </None>
         <ShaderDir Include="$(ProjectDir)\assets\shaders\*" />
         <CompiledShaders Include="$(ProjectDir)\assets\shaders\**\*.spv" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="assets\models\" />
     </ItemGroup>
     
     <Target Name="CleanCompiledShaders" AfterTargets="Clean">
