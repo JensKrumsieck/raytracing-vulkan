@@ -1,7 +1,7 @@
 ﻿using Silk.NET.Vulkan;
 using Buffer = Silk.NET.Vulkan.Buffer;
 
-namespace RaytracingVulkan;
+namespace RaytracingVulkan.Memory;
 
 public sealed unsafe class VkBuffer : Allocation
 {

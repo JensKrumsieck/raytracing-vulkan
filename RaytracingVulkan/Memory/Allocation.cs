@@ -1,6 +1,6 @@
 ﻿using Silk.NET.Vulkan;
 
-namespace RaytracingVulkan;
+namespace RaytracingVulkan.Memory;
 
 public abstract unsafe class Allocation : IDisposable
 {

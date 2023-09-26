@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using RaytracingVulkan.Memory;
 using RaytracingVulkan.Primitives;
 using Silk.NET.Vulkan;
 
