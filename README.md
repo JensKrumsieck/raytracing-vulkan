@@ -7,10 +7,10 @@ I choose to use the [Silk.NET Vulkan bindings](https://github.com/dotnet/Silk.NE
 
 ___________
 ## Medium Stories:
-### [Part 1](https://jenskrumsieck.medium.com/raytracing-in-vulkan-using-c-part-1-997cb284f7e8)
-### [Part 2](https://jenskrumsieck.medium.com/raytracing-in-vulkan-using-c-part-2-3a8e21e27139)
-### [Part 3](https://medium.com/@jenskrumsieck/raytracing-in-vulkan-using-c-part-3-50118e4ec233)
-### [Part 4](https://jenskrumsieck.medium.com/raytracing-in-vulkan-using-c-part-4-1d46b8aa2088)
+### [Part 1: Setting up Vulkan & our first Sphere](https://jenskrumsieck.medium.com/raytracing-in-vulkan-using-c-part-1-997cb284f7e8)
+### [Part 2: Refactoring, Avalonia UI and WASD Camera](https://jenskrumsieck.medium.com/raytracing-in-vulkan-using-c-part-2-3a8e21e27139)
+### [Part 3: Texture accumulation & Lambertian shading](https://medium.com/@jenskrumsieck/raytracing-in-vulkan-using-c-part-3-50118e4ec233)
+### [Part 4: Triangles, Assimp (Asset import) & performance tweaks](https://jenskrumsieck.medium.com/raytracing-in-vulkan-using-c-part-4-1d46b8aa2088)
 
 ____________
 Feel free to contribute or leave suggestions.
