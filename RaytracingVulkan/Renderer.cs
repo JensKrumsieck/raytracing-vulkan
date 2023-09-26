@@ -24,6 +24,7 @@ public sealed unsafe class Renderer : IDisposable
     
     private readonly VkBuffer _sceneParameterBuffer;
     private readonly VkBuffer _triangleBuffer;
+    private readonly VkBuffer _sphereBuffer;
     
     //pointers
     private void* _mappedData;
@@ -36,6 +37,7 @@ public sealed unsafe class Renderer : IDisposable
     
     //mesh data
     private Triangle[] _triangles;
+    private Sphere[] _spheres;
 
     public bool IsReady;
 
@@ -43,8 +45,13 @@ public sealed unsafe class Renderer : IDisposable
     {
         _context = context;
         
-        //init with cube for now
         _triangles = MeshImporter.FromFile("./assets/models/suzanne.fbx")[0].ToTriangles();
+        _spheres = new Sphere[]
+        {
+            new() {Position = new Vector3(-2.0f, -0.5f, -1.0f), Radius = 0.5f},
+            new() {Position = new Vector3(2.0f, -0.5f, -1.0f), Radius = 0.5f},
+            new() {Position = new Vector3(0.0f, -101f, -1.0f), Radius = 100.0f}
+        };
         
         //pipeline creation
         var poolSizes = new DescriptorPoolSize[]
@@ -65,8 +72,9 @@ public sealed unsafe class Renderer : IDisposable
         var binding1 = binding0 with {Binding = 1, DescriptorType = DescriptorType.UniformBuffer};
         var binding2 = binding0 with {Binding = 2};
         var binding3 = binding0 with {Binding = 3, DescriptorType = DescriptorType.StorageBuffer};
-        
-        _setLayout = _context.CreateDescriptorSetLayout(new[] {binding0, binding1, binding2, binding3});
+        var binding4 = binding0 with {Binding = 4, DescriptorType = DescriptorType.StorageBuffer};
+
+        _setLayout = _context.CreateDescriptorSetLayout(new[] {binding0, binding1, binding2, binding3, binding4});
         _descriptorSet = _context.AllocateDescriptorSet(_descriptorPool, _setLayout);
 
         var shaderModule = _context.LoadShaderModule("./assets/shaders/raytracing.comp.spv");
@@ -89,6 +97,20 @@ public sealed unsafe class Renderer : IDisposable
         stagingBuffer.CopyToBuffer(_triangleBuffer);
         
         _context.UpdateDescriptorSetBuffer(ref _descriptorSet, _triangleBuffer.GetBufferInfo(), DescriptorType.StorageBuffer, 3);
+        
+        _sphereBuffer = new VkBuffer(_context, (uint) (sizeof(Sphere) * _spheres.Length), BufferUsageFlags.StorageBufferBit | BufferUsageFlags.TransferDstBit, MemoryPropertyFlags.DeviceLocalBit);
+        
+        //use staging buffer
+        stagingBuffer = new VkBuffer(_context, (uint) (sizeof(Sphere) * _spheres.Length), BufferUsageFlags.TransferSrcBit, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
+        pData = IntPtr.Zero.ToPointer();
+        stagingBuffer.MapMemory(ref pData);
+        fixed (void* pSpheres = _spheres)
+            System.Buffer.MemoryCopy(pSpheres, pData, stagingBuffer.Size, stagingBuffer.Size);
+        stagingBuffer.UnmapMemory();
+        
+        stagingBuffer.CopyToBuffer(_sphereBuffer);
+        
+        _context.UpdateDescriptorSetBuffer(ref _descriptorSet, _sphereBuffer.GetBufferInfo(), DescriptorType.StorageBuffer, 4);
         
         //we don't need it anymore
         _context.DestroyShaderModule(shaderModule);
@@ -169,6 +191,7 @@ public sealed unsafe class Renderer : IDisposable
         _context.WaitIdle();
         _sceneParameterBuffer.Dispose();
         _triangleBuffer.Dispose();
+        _sphereBuffer.Dispose();
         _vkBuffer?.Dispose();
         _vkImage?.Dispose();
         
@@ -176,31 +199,5 @@ public sealed unsafe class Renderer : IDisposable
         _context.DestroyDescriptorSetLayout(_setLayout);
         _context.DestroyPipelineLayout(_pipelineLayout);
         _context.DestroyPipeline(_pipeline);
-    }
-
-    private static Triangle[] Cube()
-    {
-        var triangles = new Triangle[12];
-        var v0 = new Vector3(1.0f, -1.0f, -1.0f);
-        var v1 = new Vector3(1.0f, -1.0f, 1.0f);
-        var v2 = new Vector3(-1.0f, -1.0f, 1.0f);
-        var v3 = new Vector3(-1.0f, -1.0f, -1.0f);
-        var v4 = new Vector3(1.0f, 1.0f, -1.0f);
-        var v5 = new Vector3(1.0f, 1.0f, 1.0f);
-        var v6 = new Vector3(-1.0f, 1.0f, 1.0f);
-        var v7 = new Vector3(-1.0f, 1.0f, -1.0f);
-        triangles[0] = new Triangle(v1, v2, v3);
-        triangles[1] = new Triangle(v7, v6, v5);
-        triangles[2] = new Triangle(v0, v4, v5);
-        triangles[3] = new Triangle(v1, v5, v6);
-        triangles[4] = new Triangle(v6, v7, v3);
-        triangles[5] = new Triangle(v0, v3, v7);
-        triangles[6] = new Triangle(v0, v1, v3);
-        triangles[7] = new Triangle(v4, v7, v5);
-        triangles[8] = new Triangle(v1, v0, v5);
-        triangles[9] = new Triangle(v2, v1, v6);
-        triangles[10] = new Triangle(v2, v6, v3);
-        triangles[11] = new Triangle(v4, v0, v7);
-        return triangles;
     }
 }

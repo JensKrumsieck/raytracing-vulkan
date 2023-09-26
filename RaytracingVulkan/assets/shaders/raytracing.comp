@@ -31,14 +31,17 @@ layout(binding = 3, std140) readonly buffer Triangles{
     triangle triangles[];
 };
 
-struct ray {
-    vec3 origin;
-    vec3 direction;
-};
-
 struct sphere {
     vec3 center;
     float radius;
+};
+layout(binding = 4, std140) readonly buffer Spheres{
+    sphere spheres[];
+};
+
+struct ray {
+    vec3 origin;
+    vec3 direction;
 };
 
 struct payload {
@@ -47,13 +50,13 @@ struct payload {
     float hitDistance;
 };
 
-bool hitTriangle(triangle tri, ray ray, inout payload payload) {
+bool hitTriangle(triangle tri, ray ray, float tmin, float tmax, inout payload payload) {
     vec3 v0v1 = tri.v1.xyz - tri.v0.xyz;
     vec3 v0v2 = tri.v2.xyz - tri.v0.xyz;
     vec3 pVec = cross(ray.direction, v0v2);
     float det = dot(v0v1, pVec);
     
-    if(det < epsilon) return false;
+    if(abs(det) < epsilon) return false;
     
     float invDet = 1 / det;
     vec3 tVec = ray.origin - tri.v0.xyz;
@@ -64,7 +67,7 @@ bool hitTriangle(triangle tri, ray ray, inout payload payload) {
     if(u < 0.0 || v < 0.0 || (u + v) > 1.0) return false;
 
     float t = dot(v0v2, qVec) * invDet;
-    if (t <= 0.001) return false;
+    if(t < tmin || tmax < t) return false;
     
     payload.hitDistance = t;
     payload.hitPoint = ray.origin + t * ray.direction;
@@ -80,7 +83,7 @@ bool hitTriangle(triangle tri, ray ray, inout payload payload) {
     return true;
 }
 
-bool hitSphere(sphere sphere, ray ray, inout payload payload)
+bool hitSphere(sphere sphere, ray ray, float tmin, float tmax, inout payload payload)
 {
     //solve sphere equation
     vec3 origin = ray.origin - sphere.center;
@@ -92,10 +95,14 @@ bool hitSphere(sphere sphere, ray ray, inout payload payload)
     float discriminant = b * b - 4 * a * c;
     if (discriminant < 0) return false;
     
+    float sqD = sqrt(discriminant);
     //calculate hitpoint and normal
-    float t = (-b - sqrt(discriminant)) / (2.0 * a);
-    
-    if (t <= 0.001) return false;
+    float t = (-b - sqD) / (2.0 * a);
+    if(t < tmin || tmax < t)
+    {
+        t = (-b + sqD) / (2.0 * a);
+        if(t < tmin || tmax < t) return false;
+    }
     
     payload.hitDistance = t;
     
@@ -117,43 +124,35 @@ vec3 GetRayDirection(vec2 coord)
 }
 
 vec3 PerPixel(ray ray)
-{    
-    sphere spheres[3];
-    spheres[0] = sphere(vec3(-2,-.5, -1), -0.5);
-    spheres[1] = sphere(vec3(2,-.5, -1), -0.5);
-    spheres[2] = sphere(vec3(0,-101, -1), 100);
-    
+{      
     uint maxBounces = 10;
     vec3 finalColor = vec3(0);
     vec3 color = vec3(1);
+
+    float near = sceneData.camProj[3][2] / sceneData.camProj[2][2];
+    float far = sceneData.camProj[3][2] / (sceneData.camProj[2][2] + 1);
         
     for(int d = 0; d < maxBounces; d++) {
         payload localPayload;
         payload payload;
         bool hit = false;
-        float closestT = infinity;
+        float closestT = far;
         for(int i = 0; i < spheres.length(); i++)
         {
-            if (hitSphere(spheres[i], ray, localPayload))
-            {
+            if (hitSphere(spheres[i], ray, near, closestT, localPayload))
+            { 
                 hit = true;
-               if (localPayload.hitDistance < closestT)
-               {
-                   closestT = localPayload.hitDistance;
-                   payload = localPayload;
-               }
-           }
+                closestT = localPayload.hitDistance;
+                payload = localPayload;
+            }
         }
         for(int i = 0; i < triangles.length(); i++)
         {
-            if (hitTriangle(triangles[i], ray, localPayload))
+            if (hitTriangle(triangles[i], ray, near, closestT, localPayload))
             {
                 hit = true;
-                if (localPayload.hitDistance < closestT)
-                {
-                    closestT = localPayload.hitDistance;
-                    payload = localPayload;
-                }
+                closestT = localPayload.hitDistance;
+                payload = localPayload;
             }
         }
 
