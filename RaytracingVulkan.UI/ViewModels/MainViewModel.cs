@@ -17,6 +17,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private CameraViewModel _cameraViewModel;
     [ObservableProperty] private float _frameTime;
     [ObservableProperty] private float _ioTime;
+    [ObservableProperty] private bool _isRunning = true;
     
     //camera and input
     private Camera ActiveCamera => _cameraViewModel.ActiveCamera;
@@ -122,7 +123,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _renderer.CopyDataTo(buffer.Address);
     }
 
-    private void Reset()
+    public void Reset()
     {
         _renderer.Reset();
         //save old image

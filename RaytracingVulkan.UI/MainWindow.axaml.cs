@@ -1,8 +1,10 @@
 using System;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
+using Projektanker.Icons.Avalonia;
 using RaytracingVulkan.UI.ViewModels;
 
 namespace RaytracingVulkan.UI;
@@ -15,7 +17,9 @@ public partial class MainWindow : Window
     private Compositor? _compositor;
 
     private bool _isInitialized;
-    private bool _updateRequested;
+
+    private readonly Icon _playIcon = new() {Value = "fa-play"};
+    private readonly Icon _pauseIcon = new() {Value = "fa-pause"};
     
     public MainWindow()
     {
@@ -34,8 +38,7 @@ public partial class MainWindow : Window
     
     private void UpdateFrame()
     {
-        _updateRequested = false;
-        if (_updateRequested || !_isInitialized) return;
+        if (!_viewModel.IsRunning || !_isInitialized) return;
         
         _viewModel.Render();
         _compositor?.RequestCompositionUpdate(UpdateFrame);
@@ -65,5 +68,16 @@ public partial class MainWindow : Window
     {
         _viewModel.Dispose();
         base.OnClosed(e);
+    }
+    private void BtnStop_OnClick(object? sender, RoutedEventArgs e)
+    {
+        _viewModel.IsRunning = false;
+        _viewModel.Reset();
+    }
+    private void BtnPlay_OnClick(object? sender, RoutedEventArgs e)
+    {
+        _viewModel.IsRunning = ! _viewModel.IsRunning;
+        BtnPlay.Content = _viewModel.IsRunning ? _playIcon : _pauseIcon;
+        UpdateFrame();
     }
 }

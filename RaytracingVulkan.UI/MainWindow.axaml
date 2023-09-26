@@ -3,28 +3,52 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:RaytracingVulkan.UI.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        xmlns:i="https://github.com/projektanker/icons.avalonia"
+        mc:Ignorable="d" d:DesignWidth="850" d:DesignHeight="450"
+        Width="1500" Height="800"
         x:Class="RaytracingVulkan.UI.MainWindow"
         x:DataType="viewModels:MainViewModel"
         Title="RaytracingVulkan.UI">
-    <Design.DataContext>
-        <viewModels:MainViewModel/>
-    </Design.DataContext>
     <DockPanel>
-        <StackPanel DockPanel.Dock="Right" Width="250" Margin="10">
-            <TextBlock>Camera Position</TextBlock>
-            <StackPanel Orientation="Horizontal">
-                <NumericUpDown Background="Red" Value="{Binding CameraViewModel.X}" Increment="0.01" ShowButtonSpinner="False" Width="50" Margin="5"/>
-                <NumericUpDown Background="Green" Text="{Binding CameraViewModel.Y}" Increment="0.01" ShowButtonSpinner="False" Width="50" Margin="5"/>
-                <NumericUpDown Background="Blue" Text="{Binding CameraViewModel.Z}" Increment="0.01" ShowButtonSpinner="False" Width="50" Margin="5"/>
-            </StackPanel>
+        <StackPanel DockPanel.Dock="Top" Height="25" Margin="5" Orientation="Horizontal" HorizontalAlignment="Center">
+            <Button x:Name="BtnPlay" Click="BtnPlay_OnClick" Classes.Running="{Binding IsRunning, Mode=TwoWay}">
+                <Button.Styles>
+                    <Style Selector="Button.Running">
+                        <Setter Property="Background" Value="{StaticResource ToggleButtonBackgroundChecked}"></Setter>
+                        <Setter Property="BorderBrush" Value="{StaticResource ToggleButtonBorderBrushChecked}" />
+                        <Setter Property="Foreground" Value="{StaticResource ToggleButtonForegroundChecked}" />
+                    </Style>
+                </Button.Styles>
+                <i:Icon Value="fa-play" />
+            </Button>
+            <Button Click="BtnStop_OnClick"><i:Icon Value="fa-stop" /></Button>
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Right" Width="350" Margin="5 10">
+            <TextBlock Text="Camera" FontWeight="Bold"/>
+            <Grid ColumnDefinitions="100,*">
+                <TextBlock Text="Position" VerticalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" Grid.Column="1">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="X" VerticalAlignment="Center"/>
+                        <NumericUpDown Background="Red" Value="{Binding CameraViewModel.X}" Increment="0.01" ShowButtonSpinner="False" Width="30" Margin="5"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Y" VerticalAlignment="Center"/>
+                    <NumericUpDown Background="Green" Text="{Binding CameraViewModel.Y}" Increment="0.01" ShowButtonSpinner="False" Width="30" Margin="5"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Z" VerticalAlignment="Center"/>
+                        <NumericUpDown Background="Blue" Text="{Binding CameraViewModel.Z}" Increment="0.01" ShowButtonSpinner="False" Width="30" Margin="5"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
             <Separator/>
-            <StackPanel Orientation="Horizontal">
+            <StackPanel Orientation="Horizontal" Margin="0 5">
                 <TextBlock Text="Last Render: "/>
                 <TextBlock Text="{Binding FrameTime}" />
                 <TextBlock Text=" ms"/>
             </StackPanel>
-            <StackPanel Orientation="Horizontal">
+            <StackPanel Orientation="Horizontal" Margin="0 5">
                 <TextBlock Text="Copy Image to UI: "/>
                 <TextBlock Text="{Binding IoTime}" />
                 <TextBlock Text=" ms"/>
