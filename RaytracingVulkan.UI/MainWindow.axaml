@@ -5,7 +5,7 @@
         xmlns:viewModels="clr-namespace:RaytracingVulkan.UI.ViewModels"
         xmlns:controls="clr-namespace:RaytracingVulkan.UI.Controls"
         mc:Ignorable="d" d:DesignWidth="850" d:DesignHeight="450"
-        Width="1400" Height="700"
+        Width="1450" Height="750"
         x:Class="RaytracingVulkan.UI.MainWindow"
         x:DataType="viewModels:MainViewModel"
         Title="RaytracingVulkan.UI">
@@ -16,9 +16,23 @@
                 <TextBlock Text="Camera" FontWeight="Bold"/>
                 <Grid ColumnDefinitions="100,*">
                     <TextBlock Text="Position" VerticalAlignment="Center"/>
-                    <controls:VectorControl Grid.Column="1" X="{Binding CameraViewModel.X}"
-                                      Y="{Binding CameraViewModel.Y}"
-                                      Z="{Binding CameraViewModel.Z}"/>
+                    <controls:VectorControl Grid.Column="1" X="{Binding CameraViewModel.PositionX}"
+                                      Y="{Binding CameraViewModel.PositionY}"
+                                      Z="{Binding CameraViewModel.PositionZ}"/>
+                </Grid>
+                <Grid ColumnDefinitions="100,*">
+                    <TextBlock Text="Rotation" VerticalAlignment="Center"/>
+                    <controls:VectorControl Grid.Column="1" X="{Binding CameraViewModel.RotationX}"
+                                            Y="{Binding CameraViewModel.RotationY}"
+                                            Z="{Binding CameraViewModel.RotationZ}"/>
+                </Grid>
+                <Grid ColumnDefinitions="100,*">
+                    <TextBlock Text="Speed" VerticalAlignment="Center"/>
+                    <NumericUpDown Grid.Column="1" Value="{Binding CameraViewModel.MovementSpeed}"/>
+                </Grid>
+                <Grid ColumnDefinitions="100,*">
+                    <TextBlock Text="Sensitivity" VerticalAlignment="Center"/>
+                    <NumericUpDown Grid.Column="1" Value="{Binding CameraViewModel.MouseSensitivity}"/>
                 </Grid>
                 <Separator/>
                 <StackPanel Orientation="Horizontal" Margin="0 5">
@@ -33,7 +47,7 @@
                 </StackPanel>
             </StackPanel>
             <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="{StaticResource ToggleButtonBackgroundChecked}" />
-            <Image Grid.Column="0" Source="{Binding Image}" x:Name="Image" Margin="0" Stretch="Fill" StretchDirection="Both"/>        
+            <Image Grid.Column="0" Source="{Binding Image}" x:Name="Image" Margin="0" Stretch="Fill" StretchDirection="Both" Focusable="True"/>        
         </Grid>
     </Grid>
 </Window>
