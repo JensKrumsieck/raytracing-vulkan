@@ -11,7 +11,7 @@
         Title="RaytracingVulkan.UI">
     <Grid RowDefinitions="30,*">
         <controls:ButtonStrip DataContext="{Binding }"/>
-        <Grid Grid.Row="1" ColumnDefinitions="*, auto, 350">
+        <Grid Grid.Row="1" ColumnDefinitions="*, auto, 360">
             <StackPanel Margin="5 10" Grid.Column="2">
                 <TextBlock Text="Camera" FontWeight="Bold"/>
                 <Grid ColumnDefinitions="100,*">
