@@ -17,9 +17,6 @@ public partial class MainWindow : Window
     private Compositor? _compositor;
 
     private bool _isInitialized;
-
-    private readonly Icon _playIcon = new() {Value = "fa-play"};
-    private readonly Icon _pauseIcon = new() {Value = "fa-pause"};
     
     public MainWindow()
     {
@@ -35,8 +32,8 @@ public partial class MainWindow : Window
         _compositor = selfVisual.Compositor;
         UpdateFrame();
     }
-    
-    private void UpdateFrame()
+
+    public void UpdateFrame()
     {
         if (!_viewModel.IsRunning || !_isInitialized) return;
         
@@ -68,16 +65,5 @@ public partial class MainWindow : Window
     {
         _viewModel.Dispose();
         base.OnClosed(e);
-    }
-    private void BtnStop_OnClick(object? sender, RoutedEventArgs e)
-    {
-        _viewModel.IsRunning = false;
-        _viewModel.Reset();
-    }
-    private void BtnPlay_OnClick(object? sender, RoutedEventArgs e)
-    {
-        _viewModel.IsRunning = ! _viewModel.IsRunning;
-        BtnPlay.Content = _viewModel.IsRunning ? _playIcon : _pauseIcon;
-        UpdateFrame();
     }
 }

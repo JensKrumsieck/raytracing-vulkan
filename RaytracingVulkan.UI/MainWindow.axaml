@@ -4,25 +4,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:RaytracingVulkan.UI.ViewModels"
         xmlns:i="https://github.com/projektanker/icons.avalonia"
+        xmlns:views="clr-namespace:RaytracingVulkan.UI.Views"
         mc:Ignorable="d" d:DesignWidth="850" d:DesignHeight="450"
         Width="1400" Height="700"
         x:Class="RaytracingVulkan.UI.MainWindow"
         x:DataType="viewModels:MainViewModel"
         Title="RaytracingVulkan.UI">
     <Grid RowDefinitions="30,*">
-        <StackPanel Height="25" Margin="5" Orientation="Horizontal" HorizontalAlignment="Center">
-            <Button x:Name="BtnPlay" Click="BtnPlay_OnClick" Classes.Running="{Binding IsRunning, Mode=TwoWay}">
-                <Button.Styles>
-                    <Style Selector="Button.Running">
-                        <Setter Property="Background" Value="{StaticResource ToggleButtonBackgroundChecked}"></Setter>
-                        <Setter Property="BorderBrush" Value="{StaticResource ToggleButtonBorderBrushChecked}" />
-                        <Setter Property="Foreground" Value="{StaticResource ToggleButtonForegroundChecked}" />
-                    </Style>
-                </Button.Styles>
-                <i:Icon Value="fa-play" />
-            </Button>
-            <Button Click="BtnStop_OnClick"><i:Icon Value="fa-stop" /></Button>
-        </StackPanel>
+        <views:ButtonStrip DataContext="{Binding }"/>
         <Grid Grid.Row="1" ColumnDefinitions="*, auto, 350">
             <StackPanel Margin="5 10" Grid.Column="2">
                 <TextBlock Text="Camera" FontWeight="Bold"/>
