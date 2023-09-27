@@ -5,7 +5,7 @@
              xmlns:viewModels="clr-namespace:RaytracingVulkan.UI.ViewModels"
              xmlns:avalonia="https://github.com/projektanker/icons.avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="RaytracingVulkan.UI.Views.ButtonStrip"
+             x:Class="RaytracingVulkan.UI.Controls.ButtonStrip"
              x:DataType="viewModels:MainViewModel">
     <StackPanel Height="25" Margin="5" Orientation="Horizontal" HorizontalAlignment="Center">
         <Button x:Name="BtnPlay" Click="BtnPlay_OnClick" Classes.Running="{Binding IsRunning, Mode=TwoWay}">

@@ -1,10 +1,8 @@
 using System;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
-using Projektanker.Icons.Avalonia;
 using RaytracingVulkan.UI.ViewModels;
 
 namespace RaytracingVulkan.UI;

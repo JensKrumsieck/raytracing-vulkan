@@ -4,7 +4,7 @@ using Avalonia.Interactivity;
 using Projektanker.Icons.Avalonia;
 using RaytracingVulkan.UI.ViewModels;
 
-namespace RaytracingVulkan.UI.Views;
+namespace RaytracingVulkan.UI.Controls;
 
 public partial class ButtonStrip : UserControl
 {

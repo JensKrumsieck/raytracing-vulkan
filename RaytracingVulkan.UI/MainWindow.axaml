@@ -3,34 +3,22 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:RaytracingVulkan.UI.ViewModels"
-        xmlns:i="https://github.com/projektanker/icons.avalonia"
-        xmlns:views="clr-namespace:RaytracingVulkan.UI.Views"
+        xmlns:controls="clr-namespace:RaytracingVulkan.UI.Controls"
         mc:Ignorable="d" d:DesignWidth="850" d:DesignHeight="450"
         Width="1400" Height="700"
         x:Class="RaytracingVulkan.UI.MainWindow"
         x:DataType="viewModels:MainViewModel"
         Title="RaytracingVulkan.UI">
     <Grid RowDefinitions="30,*">
-        <views:ButtonStrip DataContext="{Binding }"/>
+        <controls:ButtonStrip DataContext="{Binding }"/>
         <Grid Grid.Row="1" ColumnDefinitions="*, auto, 350">
             <StackPanel Margin="5 10" Grid.Column="2">
                 <TextBlock Text="Camera" FontWeight="Bold"/>
                 <Grid ColumnDefinitions="100,*">
                     <TextBlock Text="Position" VerticalAlignment="Center"/>
-                    <StackPanel Orientation="Horizontal" Grid.Column="1">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="X" VerticalAlignment="Center"/>
-                            <NumericUpDown Background="Red" Value="{Binding CameraViewModel.X}" Increment="0.01" ShowButtonSpinner="False" Width="30" Margin="5"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Y" VerticalAlignment="Center"/>
-                            <NumericUpDown Background="Green" Text="{Binding CameraViewModel.Y}" Increment="0.01" ShowButtonSpinner="False" Width="30" Margin="5"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Z" VerticalAlignment="Center"/>
-                            <NumericUpDown Background="Blue" Text="{Binding CameraViewModel.Z}" Increment="0.01" ShowButtonSpinner="False" Width="30" Margin="5"/>
-                        </StackPanel>
-                    </StackPanel>
+                    <controls:VectorControl Grid.Column="1" X="{Binding CameraViewModel.X}"
+                                      Y="{Binding CameraViewModel.Y}"
+                                      Z="{Binding CameraViewModel.Z}"/>
                 </Grid>
                 <Separator/>
                 <StackPanel Orientation="Horizontal" Margin="0 5">

@@ -1,0 +1,29 @@
+﻿<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:RaytracingVulkan.UI.Controls">
+    <Design.PreviewWith>
+        <controls:VectorControl />
+    </Design.PreviewWith>
+
+    <Style Selector="controls|VectorControl">
+        <!-- Set Defaults -->
+        <Setter Property="Template">
+            <ControlTemplate>
+                <StackPanel Orientation="Horizontal">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="X" VerticalAlignment="Center"/>
+                        <NumericUpDown x:Name="PART_X" Background="Red" Value="{TemplateBinding X}" Increment="0.01" ShowButtonSpinner="False" Width="30" Margin="5"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Y" VerticalAlignment="Center"/>
+                        <NumericUpDown x:Name="PART_Y" Background="Green" Value="{TemplateBinding Y}" Increment="0.01" ShowButtonSpinner="False" Width="30" Margin="5"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Z" VerticalAlignment="Center"/>
+                        <NumericUpDown x:Name="PART_Z" Background="Blue" Value="{TemplateBinding Z}" Increment="0.01" ShowButtonSpinner="False" Width="30" Margin="5"/>
+                    </StackPanel>
+                </StackPanel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+</Styles>
