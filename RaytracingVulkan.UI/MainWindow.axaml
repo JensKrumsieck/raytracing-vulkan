@@ -9,8 +9,8 @@
         x:Class="RaytracingVulkan.UI.MainWindow"
         x:DataType="viewModels:MainViewModel"
         Title="RaytracingVulkan.UI">
-    <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Height="25" Margin="5" Orientation="Horizontal" HorizontalAlignment="Center">
+    <Grid RowDefinitions="30,*">
+        <StackPanel Height="25" Margin="5" Orientation="Horizontal" HorizontalAlignment="Center">
             <Button x:Name="BtnPlay" Click="BtnPlay_OnClick" Classes.Running="{Binding IsRunning, Mode=TwoWay}">
                 <Button.Styles>
                     <Style Selector="Button.Running">
@@ -23,37 +23,40 @@
             </Button>
             <Button Click="BtnStop_OnClick"><i:Icon Value="fa-stop" /></Button>
         </StackPanel>
-        <StackPanel DockPanel.Dock="Right" Width="350" Margin="5 10">
-            <TextBlock Text="Camera" FontWeight="Bold"/>
-            <Grid ColumnDefinitions="100,*">
-                <TextBlock Text="Position" VerticalAlignment="Center"/>
-                <StackPanel Orientation="Horizontal" Grid.Column="1">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="X" VerticalAlignment="Center"/>
-                        <NumericUpDown Background="Red" Value="{Binding CameraViewModel.X}" Increment="0.01" ShowButtonSpinner="False" Width="30" Margin="5"/>
+        <Grid Grid.Row="1" ColumnDefinitions="*, 4, 350">
+            <StackPanel Margin="5 10" Grid.Column="2">
+                <TextBlock Text="Camera" FontWeight="Bold"/>
+                <Grid ColumnDefinitions="100,*">
+                    <TextBlock Text="Position" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" Grid.Column="1">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="X" VerticalAlignment="Center"/>
+                            <NumericUpDown Background="Red" Value="{Binding CameraViewModel.X}" Increment="0.01" ShowButtonSpinner="False" Width="30" Margin="5"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Y" VerticalAlignment="Center"/>
+                            <NumericUpDown Background="Green" Text="{Binding CameraViewModel.Y}" Increment="0.01" ShowButtonSpinner="False" Width="30" Margin="5"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Z" VerticalAlignment="Center"/>
+                            <NumericUpDown Background="Blue" Text="{Binding CameraViewModel.Z}" Increment="0.01" ShowButtonSpinner="False" Width="30" Margin="5"/>
+                        </StackPanel>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Y" VerticalAlignment="Center"/>
-                    <NumericUpDown Background="Green" Text="{Binding CameraViewModel.Y}" Increment="0.01" ShowButtonSpinner="False" Width="30" Margin="5"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Z" VerticalAlignment="Center"/>
-                        <NumericUpDown Background="Blue" Text="{Binding CameraViewModel.Z}" Increment="0.01" ShowButtonSpinner="False" Width="30" Margin="5"/>
-                    </StackPanel>
+                </Grid>
+                <Separator/>
+                <StackPanel Orientation="Horizontal" Margin="0 5">
+                    <TextBlock Text="Last Render: "/>
+                    <TextBlock Text="{Binding FrameTime}" />
+                    <TextBlock Text=" ms"/>
                 </StackPanel>
-            </Grid>
-            <Separator/>
-            <StackPanel Orientation="Horizontal" Margin="0 5">
-                <TextBlock Text="Last Render: "/>
-                <TextBlock Text="{Binding FrameTime}" />
-                <TextBlock Text=" ms"/>
+                <StackPanel Orientation="Horizontal" Margin="0 5">
+                    <TextBlock Text="Copy Image to UI: "/>
+                    <TextBlock Text="{Binding IoTime}" />
+                    <TextBlock Text=" ms"/>
+                </StackPanel>
             </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0 5">
-                <TextBlock Text="Copy Image to UI: "/>
-                <TextBlock Text="{Binding IoTime}" />
-                <TextBlock Text=" ms"/>
-            </StackPanel>
-        </StackPanel>
-        <Image Source="{Binding Image}" x:Name="Image" Margin="0" Stretch="Fill" StretchDirection="Both"/>
-    </DockPanel>
+            <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="Brown" />
+            <Image Grid.Column="0" Source="{Binding Image}" x:Name="Image" Margin="0" Stretch="Fill" StretchDirection="Both"/>        
+        </Grid>
+    </Grid>
 </Window>

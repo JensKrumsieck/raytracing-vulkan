@@ -150,7 +150,7 @@ public sealed unsafe class Renderer : IDisposable
         //execute compute shader
         _context.BindComputePipeline(_computeCmd, _pipeline);
         _context.BindComputeDescriptorSet(_computeCmd, _descriptorSet, _pipelineLayout);
-        _context.Dispatch(_computeCmd, _vkImage!.Width/16, _vkImage.Height/16, 1);
+        _context.Dispatch(_computeCmd, (uint) (_vkImage!.Width / 16f) + 1, (uint) (_vkImage.Height / 16f) + 1, 1);
         
         _context.EndCommandBuffer(_computeCmd, _computeFence);
     }
