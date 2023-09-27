@@ -5,7 +5,7 @@
         xmlns:viewModels="clr-namespace:RaytracingVulkan.UI.ViewModels"
         xmlns:i="https://github.com/projektanker/icons.avalonia"
         mc:Ignorable="d" d:DesignWidth="850" d:DesignHeight="450"
-        Width="1500" Height="800"
+        Width="1400" Height="700"
         x:Class="RaytracingVulkan.UI.MainWindow"
         x:DataType="viewModels:MainViewModel"
         Title="RaytracingVulkan.UI">
@@ -23,7 +23,7 @@
             </Button>
             <Button Click="BtnStop_OnClick"><i:Icon Value="fa-stop" /></Button>
         </StackPanel>
-        <Grid Grid.Row="1" ColumnDefinitions="*, 4, 350">
+        <Grid Grid.Row="1" ColumnDefinitions="*, auto, 350">
             <StackPanel Margin="5 10" Grid.Column="2">
                 <TextBlock Text="Camera" FontWeight="Bold"/>
                 <Grid ColumnDefinitions="100,*">
@@ -55,7 +55,7 @@
                     <TextBlock Text=" ms"/>
                 </StackPanel>
             </StackPanel>
-            <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="Brown" />
+            <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="{StaticResource ToggleButtonBackgroundChecked}" />
             <Image Grid.Column="0" Source="{Binding Image}" x:Name="Image" Margin="0" Stretch="Fill" StretchDirection="Both"/>        
         </Grid>
     </Grid>
