@@ -47,7 +47,10 @@
                 </StackPanel>
             </StackPanel>
             <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="{StaticResource ToggleButtonBackgroundChecked}" />
-            <Image Grid.Column="0" Source="{Binding Image}" x:Name="Image" Margin="0" Stretch="Fill" StretchDirection="Both" Focusable="True"/>        
+            <Grid Grid.Column="0"  RowDefinitions="*, Auto, 100">
+                <Image Source="{Binding Image}" x:Name="Image" Margin="0" Stretch="Fill" StretchDirection="Both" Focusable="True"/>  
+                <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="{StaticResource ToggleButtonBackgroundChecked}" />
+            </Grid>
         </Grid>
     </Grid>
 </Window>

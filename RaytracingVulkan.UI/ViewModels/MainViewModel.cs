@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Numerics;
+using System.Reflection;
 using Avalonia;
 using Avalonia.Input;
 using Avalonia.Media.Imaging;
@@ -15,6 +17,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     //observables
     [ObservableProperty] private WriteableBitmap _image;
     [ObservableProperty] private CameraViewModel _cameraViewModel;
+    [ObservableProperty] private FolderViewModel _folderViewModel;
     [ObservableProperty] private float _frameTime;
     [ObservableProperty] private float _ioTime;
     [ObservableProperty] private bool _isRunning = true;
@@ -40,6 +43,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
             Rotation = new Vector3(0, -180, 0)
         });
         _cameraViewModel.ActiveCamera.RecalculateView();
+        _folderViewModel = new FolderViewModel(Path.GetDirectoryName(typeof(Renderer).Assembly.Location) + @"\assets");
+        
         //needed for initial binding
         _image = new WriteableBitmap(new PixelSize(1, 1), new Vector(96, 96), PixelFormat.Bgra8888);
         _renderer = new Renderer((Application.Current as App)!.VkContext);
