@@ -2,6 +2,7 @@
 using Silk.NET.Core.Native;
 using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.EXT;
+using Silk.NET.Vulkan.Extensions.KHR;
 
 namespace RaytracingVulkan;
 
@@ -84,7 +85,12 @@ public sealed unsafe partial class VkContext : IDisposable
         var deviceProps = _vk.GetPhysicalDeviceProperties(_physicalDevice);
         Console.WriteLine(SilkMarshal.PtrToString((nint)deviceProps.DeviceName));
 
-        var enabledDeviceExtensions = new List<string>(); //empty for now!
+        var enabledDeviceExtensions = new List<string>
+        {
+            KhrRayTracingPipeline.ExtensionName, 
+            KhrAccelerationStructure.ExtensionName,
+            KhrDeferredHostOperations.ExtensionName
+        };
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             enabledDeviceExtensions.Add("VK_KHR_portability_subset");
         var pPEnabledDeviceExtensions = (byte**)SilkMarshal.StringArrayToPtr(enabledDeviceExtensions.ToArray());
@@ -111,6 +117,32 @@ public sealed unsafe partial class VkContext : IDisposable
             QueueFamilyIndex = _mainQueueIndex,
             PQueuePriorities = &defaultPriority
         };
+
+        var rtPipelineFeatures = new PhysicalDeviceRayTracingPipelineFeaturesKHR
+        {
+            SType = StructureType.PhysicalDeviceRayTracingPipelineFeaturesKhr
+        };
+        var asFeatures = new PhysicalDeviceAccelerationStructureFeaturesKHR
+        {
+            SType = StructureType.PhysicalDeviceAccelerationStructureFeaturesKhr,
+            PNext = &rtPipelineFeatures
+        };
+        var features11 = new PhysicalDeviceVulkan11Features
+        {
+            SType = StructureType.PhysicalDeviceVulkan11Features,
+            PNext = &asFeatures
+        };
+        var features12 = new PhysicalDeviceVulkan12Features
+        {
+            SType = StructureType.PhysicalDeviceVulkan12Features,
+            PNext = &features11
+        };
+        var features2 = new PhysicalDeviceFeatures2
+        {
+            SType = StructureType.PhysicalDeviceFeatures2,
+            PNext = &features12
+        };
+        _vk.GetPhysicalDeviceFeatures2(_physicalDevice, &features2);
         
         var deviceCreateInfo = new DeviceCreateInfo
         {
@@ -120,7 +152,8 @@ public sealed unsafe partial class VkContext : IDisposable
             EnabledExtensionCount = (uint) enabledDeviceExtensions.Count,
             PpEnabledExtensionNames = pPEnabledDeviceExtensions,
             QueueCreateInfoCount = 1,
-            PQueueCreateInfos = &queueCreateInfo
+            PQueueCreateInfos = &queueCreateInfo,
+            PNext = &features2
         };
         if (_vk.CreateDevice(_physicalDevice, deviceCreateInfo, null, out _device) != Result.Success)
             throw new Exception("Could not create device");
