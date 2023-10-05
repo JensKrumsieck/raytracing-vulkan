@@ -5,7 +5,7 @@ namespace RaytracingVulkan;
 public class Camera
 {
     public Vector3 Position;
-    public Vector3 Forward;
+    public Vector3 Rotation;
     
     public Matrix4x4 Projection;
     public Matrix4x4 View;
@@ -21,12 +21,9 @@ public class Camera
 
     public Camera(float verticalFovDegrees, float nearClip, float farClip)
     {
-        Forward = -Vector3.UnitZ;
-        Position = Vector3.Zero;
         _verticalFov = verticalFovDegrees * MathF.PI / 180;
         _nearClip = nearClip;
         _farClip = farClip;
-        
         RecalculateProjection();
         RecalculateView();
     }
@@ -39,10 +36,24 @@ public class Camera
 
     public void RecalculateView()
     {
-        View = Matrix4x4.CreateLookAt(Position, Position + Forward, Vector3.UnitY);
+        View = Matrix4x4.CreateLookAt(Position, Position + CalculateForward(), CalculateUp());
         Matrix4x4.Invert(View, out InverseView);
     }
 
+    public Vector3 CalculateForward()
+    {
+        var degRot = Rotation * (MathF.PI / 180.0f);
+        var quat = Quaternion.CreateFromYawPitchRoll(degRot.Y, degRot.X, degRot.Z);
+        return Vector3.Transform(Vector3.UnitZ, quat);
+    }
+
+    public Vector3 CalculateUp()
+    {
+        var degRot = Rotation * (MathF.PI / 180.0f);
+        var quat = Quaternion.CreateFromYawPitchRoll(degRot.Y, degRot.X, degRot.Z);
+        return Vector3.Transform(Vector3.UnitY, quat);
+    }
+    
     public void Resize(uint newWidth, uint newHeight)
     {
         _viewportWidth = newWidth;

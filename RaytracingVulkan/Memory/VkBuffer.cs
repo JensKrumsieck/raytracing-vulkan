@@ -1,4 +1,5 @@
-﻿using Silk.NET.Vulkan;
+﻿using System.Runtime.CompilerServices;
+using Silk.NET.Vulkan;
 using Buffer = Silk.NET.Vulkan.Buffer;
 
 namespace RaytracingVulkan.Memory;
@@ -41,6 +42,21 @@ public sealed unsafe class VkBuffer : Allocation
         Vk.BindBufferMemory(Device, Buffer, Memory, 0);
     }
 
+    
+    public static VkBuffer CreateAndCopyToStagingBuffer<T>(VkContext ctx, T[] data) where T : unmanaged
+    {
+        var count = (uint) data.Length;
+        var bufferSize = (uint)Unsafe.SizeOf<T>() * count;
+        var stagingBuffer = new VkBuffer(ctx, bufferSize, BufferUsageFlags.TransferSrcBit,
+                                         MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
+        var dst = IntPtr.Zero.ToPointer();
+        stagingBuffer.MapMemory(ref dst);
+        fixed (void* pData = data)
+            System.Buffer.MemoryCopy(pData, dst, bufferSize, bufferSize);
+        stagingBuffer.UnmapMemory();
+        return stagingBuffer;
+    }
+    
     public void CopyToImage(VkImage vkImage)
     {
         var cmd = VkContext.BeginSingleTimeCommands();

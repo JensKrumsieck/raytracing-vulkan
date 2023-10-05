@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Numerics;
+using System.Reflection;
 using Avalonia;
 using Avalonia.Input;
 using Avalonia.Media.Imaging;
@@ -15,8 +17,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
     //observables
     [ObservableProperty] private WriteableBitmap _image;
     [ObservableProperty] private CameraViewModel _cameraViewModel;
+    [ObservableProperty] private FolderViewModel _folderViewModel;
     [ObservableProperty] private float _frameTime;
     [ObservableProperty] private float _ioTime;
+    [ObservableProperty] private bool _isRunning = true;
     
     //camera and input
     private Camera ActiveCamera => _cameraViewModel.ActiveCamera;
@@ -33,8 +37,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public MainViewModel(InputHandler input)
     {
         _input = input;
-        _cameraViewModel = new CameraViewModel(new Camera(40, 0.1f, 1000f){Position = new Vector3(0,0,5)});
+        _cameraViewModel = new CameraViewModel(new Camera(40, 0.1f, 1000f)
+        {
+            Position = new Vector3(0,0,5),
+            Rotation = new Vector3(0, -180, 0)
+        });
         _cameraViewModel.ActiveCamera.RecalculateView();
+        _folderViewModel = new FolderViewModel(Path.GetDirectoryName(typeof(Renderer).Assembly.Location) + @"\assets");
+        
         //needed for initial binding
         _image = new WriteableBitmap(new PixelSize(1, 1), new Vector(96, 96), PixelFormat.Bgra8888);
         _renderer = new Renderer((Application.Current as App)!.VkContext);
@@ -70,19 +80,20 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private void HandleInput(float deltaTime)
     {
         //camera move
-        var speed = 5f * deltaTime;
-        var right = Vector3.Cross(ActiveCamera.Forward, Vector3.UnitY);
+        var forward = ActiveCamera.CalculateForward();
+        var up = ActiveCamera.CalculateUp();
+        var right = Vector3.Cross(forward, up);
         var moved = false;
         
         var moveVector = Vector3.Zero;
         if (_input.PressedKeys.Contains(Key.W))
         {
-            moveVector += ActiveCamera.Forward;
+            moveVector += forward;
             moved = true;
         }
         if (_input.PressedKeys.Contains(Key.S))
-        { 
-            moveVector -= ActiveCamera.Forward;
+        {
+            moveVector -= forward;
             moved = true;
             
         }
@@ -98,22 +109,32 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
         if (_input.PressedKeys.Contains(Key.Q))
         {
-            moveVector += Vector3.UnitY;
+            moveVector += up;
             moved = true;
         }
         if (_input.PressedKeys.Contains(Key.E))
         {
-            moveVector -= Vector3.UnitY;
+            moveVector -= up;
             moved = true;
         }
 
-        if (!moved) return;
-        if(moveVector.Length() == 0) return;
-        
-        moveVector = Vector3.Normalize(moveVector) * speed;
-        _cameraViewModel.Position += moveVector;
-        ActiveCamera.RecalculateView();
-        Reset();
+        if (moved && moveVector.Length() > 0)
+        {
+            moveVector = Vector3.Normalize(moveVector) * _cameraViewModel.MovementSpeed * deltaTime;
+            _cameraViewModel.Position += moveVector;
+            ActiveCamera.RecalculateView();
+            Reset();
+        }
+
+        if (_input.MouseDelta != Vector2.Zero)
+        {
+            var rotation = new Vector3(-_input.MouseDelta.Y, _input.MouseDelta.X, 0);
+            rotation *= _cameraViewModel.MouseSensitivity * deltaTime;
+            _cameraViewModel.Rotation += rotation;
+            _cameraViewModel.Rotation = Vector3.Clamp(_cameraViewModel.Rotation, new Vector3(-360), new Vector3(360));
+            ActiveCamera.RecalculateView();
+            Reset();
+        }
     }
 
     private void CopyImageToHost()
@@ -122,7 +143,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _renderer.CopyDataTo(buffer.Address);
     }
 
-    private void Reset()
+    public void Reset()
     {
         _renderer.Reset();
         //save old image

@@ -41,6 +41,7 @@ public sealed unsafe class Renderer : IDisposable
     private uint _frameIndex = 1;
     
     //mesh data
+    private Mesh _scene;
     private Triangle[] _triangles;
     private Sphere[] _spheres;
 
@@ -49,8 +50,9 @@ public sealed unsafe class Renderer : IDisposable
     public Renderer(VkContext context)
     {
         _context = context;
-        
-        _triangles = MeshImporter.FromFile("./assets/models/suzanne.fbx")[0].ToTriangles();
+        _scene = MeshImporter.FromFile("./assets/models/suzanne.fbx")[0];
+        _scene.CreateBuffers(_context);
+        _triangles = _scene.ToTriangles();
         _spheres = new Sphere[]
         {
             new() {Position = new Vector3(-2.0f, -0.5f, -1.0f), Radius = 0.5f},
@@ -92,13 +94,7 @@ public sealed unsafe class Renderer : IDisposable
         _triangleBuffer = new VkBuffer(_context, (uint) (sizeof(Triangle) * _triangles.Length), BufferUsageFlags.StorageBufferBit | BufferUsageFlags.TransferDstBit, MemoryPropertyFlags.DeviceLocalBit);
         
         //use staging buffer
-        var stagingBuffer = new VkBuffer(_context, (uint) (sizeof(Triangle) * _triangles.Length), BufferUsageFlags.TransferSrcBit, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
-        var pData = IntPtr.Zero.ToPointer();
-        stagingBuffer.MapMemory(ref pData);
-        fixed (void* pTriangles = _triangles)
-            System.Buffer.MemoryCopy(pTriangles, pData, stagingBuffer.Size, stagingBuffer.Size);
-        stagingBuffer.UnmapMemory();
-        
+        var stagingBuffer = VkBuffer.CreateAndCopyToStagingBuffer(_context, _triangles);
         stagingBuffer.CopyToBuffer(_triangleBuffer);
         stagingBuffer.Dispose();
         
@@ -107,13 +103,7 @@ public sealed unsafe class Renderer : IDisposable
         _sphereBuffer = new VkBuffer(_context, (uint) (sizeof(Sphere) * _spheres.Length), BufferUsageFlags.StorageBufferBit | BufferUsageFlags.TransferDstBit, MemoryPropertyFlags.DeviceLocalBit);
         
         //use staging buffer
-        stagingBuffer = new VkBuffer(_context, (uint) (sizeof(Sphere) * _spheres.Length), BufferUsageFlags.TransferSrcBit, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
-        pData = IntPtr.Zero.ToPointer();
-        stagingBuffer.MapMemory(ref pData);
-        fixed (void* pSpheres = _spheres)
-            System.Buffer.MemoryCopy(pSpheres, pData, stagingBuffer.Size, stagingBuffer.Size);
-        stagingBuffer.UnmapMemory();
-        
+        stagingBuffer = VkBuffer.CreateAndCopyToStagingBuffer(_context, _spheres);
         stagingBuffer.CopyToBuffer(_sphereBuffer);
         stagingBuffer.Dispose();
         
@@ -150,7 +140,7 @@ public sealed unsafe class Renderer : IDisposable
         //execute compute shader
         _context.BindComputePipeline(_computeCmd, _pipeline);
         _context.BindComputeDescriptorSet(_computeCmd, _descriptorSet, _pipelineLayout);
-        _context.Dispatch(_computeCmd, _vkImage!.Width/16, _vkImage.Height/16, 1);
+        _context.Dispatch(_computeCmd, _vkImage!.Width / 16 + 1, _vkImage.Height / 16 + 1, 1);
         
         _context.EndCommandBuffer(_computeCmd, _computeFence);
     }

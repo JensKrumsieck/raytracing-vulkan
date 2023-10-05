@@ -3,33 +3,54 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:RaytracingVulkan.UI.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        xmlns:controls="clr-namespace:RaytracingVulkan.UI.Controls"
+        mc:Ignorable="d" d:DesignWidth="850" d:DesignHeight="450"
+        Width="1450" Height="750"
         x:Class="RaytracingVulkan.UI.MainWindow"
         x:DataType="viewModels:MainViewModel"
         Title="RaytracingVulkan.UI">
-    <Design.DataContext>
-        <viewModels:MainViewModel/>
-    </Design.DataContext>
-    <DockPanel>
-        <StackPanel DockPanel.Dock="Right" Width="250" Margin="10">
-            <TextBlock>Camera Position</TextBlock>
-            <StackPanel Orientation="Horizontal">
-                <NumericUpDown Background="Red" Value="{Binding CameraViewModel.X}" Increment="0.01" ShowButtonSpinner="False" Width="50" Margin="5"/>
-                <NumericUpDown Background="Green" Text="{Binding CameraViewModel.Y}" Increment="0.01" ShowButtonSpinner="False" Width="50" Margin="5"/>
-                <NumericUpDown Background="Blue" Text="{Binding CameraViewModel.Z}" Increment="0.01" ShowButtonSpinner="False" Width="50" Margin="5"/>
+    <Grid RowDefinitions="30,*">
+        <controls:ButtonStrip DataContext="{Binding }"/>
+        <Grid Grid.Row="1" ColumnDefinitions="*, auto, 360">
+            <StackPanel Margin="5 10" Grid.Column="2">
+                <TextBlock Text="Camera" FontWeight="Bold"/>
+                <Grid ColumnDefinitions="100,*">
+                    <TextBlock Text="Position" VerticalAlignment="Center"/>
+                    <controls:VectorControl Grid.Column="1" X="{Binding CameraViewModel.PositionX}"
+                                      Y="{Binding CameraViewModel.PositionY}"
+                                      Z="{Binding CameraViewModel.PositionZ}"/>
+                </Grid>
+                <Grid ColumnDefinitions="100,*">
+                    <TextBlock Text="Rotation" VerticalAlignment="Center"/>
+                    <controls:VectorControl Grid.Column="1" X="{Binding CameraViewModel.RotationX}"
+                                            Y="{Binding CameraViewModel.RotationY}"
+                                            Z="{Binding CameraViewModel.RotationZ}"/>
+                </Grid>
+                <Grid ColumnDefinitions="100,*">
+                    <TextBlock Text="Speed" VerticalAlignment="Center"/>
+                    <NumericUpDown Grid.Column="1" Value="{Binding CameraViewModel.MovementSpeed}"/>
+                </Grid>
+                <Grid ColumnDefinitions="100,*">
+                    <TextBlock Text="Sensitivity" VerticalAlignment="Center"/>
+                    <NumericUpDown Grid.Column="1" Value="{Binding CameraViewModel.MouseSensitivity}"/>
+                </Grid>
+                <Separator/>
+                <StackPanel Orientation="Horizontal" Margin="0 5">
+                    <TextBlock Text="Last Render: "/>
+                    <TextBlock Text="{Binding FrameTime}" />
+                    <TextBlock Text=" ms"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0 5">
+                    <TextBlock Text="Copy Image to UI: "/>
+                    <TextBlock Text="{Binding IoTime}" />
+                    <TextBlock Text=" ms"/>
+                </StackPanel>
             </StackPanel>
-            <Separator/>
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Last Render: "/>
-                <TextBlock Text="{Binding FrameTime}" />
-                <TextBlock Text=" ms"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Copy Image to UI: "/>
-                <TextBlock Text="{Binding IoTime}" />
-                <TextBlock Text=" ms"/>
-            </StackPanel>
-        </StackPanel>
-        <Image Source="{Binding Image}" x:Name="Image" Margin="0" Stretch="Fill" StretchDirection="Both"/>
-    </DockPanel>
+            <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="{StaticResource ToggleButtonBackgroundChecked}" />
+            <Grid Grid.Column="0"  RowDefinitions="*">
+                <Image Source="{Binding Image}" x:Name="Image" Margin="0" Stretch="Fill" StretchDirection="Both" Focusable="True"/>  
+                <!--<GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="{StaticResource ToggleButtonBackgroundChecked}" />-->
+            </Grid>
+        </Grid>
+    </Grid>
 </Window>
