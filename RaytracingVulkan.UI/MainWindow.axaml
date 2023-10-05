@@ -47,9 +47,9 @@
                 </StackPanel>
             </StackPanel>
             <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="{StaticResource ToggleButtonBackgroundChecked}" />
-            <Grid Grid.Column="0"  RowDefinitions="*, Auto, 100">
+            <Grid Grid.Column="0"  RowDefinitions="*">
                 <Image Source="{Binding Image}" x:Name="Image" Margin="0" Stretch="Fill" StretchDirection="Both" Focusable="True"/>  
-                <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="{StaticResource ToggleButtonBackgroundChecked}" />
+                <!--<GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="{StaticResource ToggleButtonBackgroundChecked}" />-->
             </Grid>
         </Grid>
     </Grid>
