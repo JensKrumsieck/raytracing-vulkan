@@ -94,12 +94,12 @@ public sealed unsafe class VkImage : Allocation
 
         if (_currentLayout == ImageLayout.Undefined)
         {
-            barrierInfo.SrcAccessMask = 0;
+            barrierInfo.SrcAccessMask = AccessFlags.None;
             srcStage = PipelineStageFlags.TopOfPipeBit;
         }
         else if (_currentLayout == ImageLayout.General)
         {
-            barrierInfo.SrcAccessMask = AccessFlags.ShaderReadBit;
+            barrierInfo.SrcAccessMask = AccessFlags.ShaderWriteBit;
             srcStage = PipelineStageFlags.ComputeShaderBit;
         }
         else if (_currentLayout == ImageLayout.TransferSrcOptimal)
@@ -136,7 +136,7 @@ public sealed unsafe class VkImage : Allocation
         }
         else if (newLayout == ImageLayout.General)
         {
-            barrierInfo.DstAccessMask = AccessFlags.ShaderReadBit;
+            barrierInfo.DstAccessMask = AccessFlags.ShaderWriteBit;
             dstStage = PipelineStageFlags.ComputeShaderBit;
         }
         else

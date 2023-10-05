@@ -41,6 +41,10 @@
                     <TextBlock Text=" ms"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0 5">
+                    <TextBlock Text="FPS: "/>
+                    <TextBlock Text="{Binding Fps}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0 5">
                     <TextBlock Text="Copy Image to UI: "/>
                     <TextBlock Text="{Binding IoTime}" />
                     <TextBlock Text=" ms"/>

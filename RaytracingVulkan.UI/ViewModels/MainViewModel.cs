@@ -20,6 +20,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private FolderViewModel _folderViewModel;
     [ObservableProperty] private float _frameTime;
     [ObservableProperty] private float _ioTime;
+    [ObservableProperty] private float _fps;
     [ObservableProperty] private bool _isRunning = true;
     
     //camera and input
@@ -66,6 +67,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         
         _frameTimeStopWatch.Stop();
         FrameTime = (float) _frameTimeStopWatch.Elapsed.TotalMilliseconds;
+        Fps = 1 / (FrameTime / 1000);
         _frameTimeStopWatch.Reset();
     }
     public void Resize(uint x, uint y)
